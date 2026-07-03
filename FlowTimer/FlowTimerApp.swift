@@ -19,20 +19,22 @@ struct FlowTimerApp: App {
         MenuBarExtra {
             MenuBarPopoverView(timerManager: timerManager)
         } label: {
-            HStack(spacing: 6) {
-                Text(timerManager.menuBarTitle)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                
-                Text("[\(timerManager.remainingTimeFormatted)]")
-                    .monospacedDigit()
-            }
+            Text("\(timerManager.menuBarTitle)   [\(timerManager.remainingTimeFormatted)]")
+                .monospacedDigit()
         }
         .menuBarExtraStyle(.window)
         
         Settings {
-            Text("Settings Placeholder")
-                .frame(width: 400, height: 300)
+            VStack(spacing: 8) {
+                Text("FlowTimer")
+                    .font(.title)
+                    .fontWeight(.bold)
+                Text("Settings")
+                    .font(.headline)
+                Text("Coming Soon")
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 400, height: 300)
         }
     }
 }

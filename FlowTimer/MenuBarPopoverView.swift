@@ -56,6 +56,7 @@ struct MenuBarPopoverView: View {
                 
                 Button(action: {
                     openWindow(id: "mainWindow")
+                    NSApplication.shared.activate(ignoringOtherApps: true)
                 }) {
                     Text("Open Main Window")
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,6 +66,7 @@ struct MenuBarPopoverView: View {
                 
                 Button(action: {
                     openSettings()
+                    NSApplication.shared.activate(ignoringOtherApps: true)
                 }) {
                     Text("Settings")
                         .frame(maxWidth: .infinity, alignment: .leading)
