@@ -1,51 +1,5 @@
 import Foundation
 
-enum TimerState: Sendable {
-    case idle
-    case running
-    case paused
-    case completed
-}
-
-extension TimerState: Equatable {
-    nonisolated static func == (lhs: TimerState, rhs: TimerState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle), (.running, .running), (.paused, .paused), (.completed, .completed): return true
-        default: return false
-        }
-    }
-}
-
-enum TimerPhase: Sendable {
-    case work
-    case shortBreak
-    case longBreak
-    case flowExtension
-}
-
-extension TimerPhase: Equatable {
-    nonisolated static func == (lhs: TimerPhase, rhs: TimerPhase) -> Bool {
-        switch (lhs, rhs) {
-        case (.work, .work), (.shortBreak, .shortBreak), (.longBreak, .longBreak), (.flowExtension, .flowExtension): return true
-        default: return false
-        }
-    }
-}
-
-enum TimerDirection: Sendable {
-    case countdown
-    case countup
-}
-
-extension TimerDirection: Equatable {
-    nonisolated static func == (lhs: TimerDirection, rhs: TimerDirection) -> Bool {
-        switch (lhs, rhs) {
-        case (.countdown, .countdown), (.countup, .countup): return true
-        default: return false
-        }
-    }
-}
-
 actor TimerEngine {
     private(set) var onTick: (@Sendable (Int) -> Void)?
     private(set) var onStateChange: (@Sendable (TimerState) -> Void)?

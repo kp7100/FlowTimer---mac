@@ -40,11 +40,8 @@ final class TimerManager {
                         self.phase = newPhase
                     }
                 },
-                onCompleted: { [weak self] in
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        // Handle completion logic here later
-                    }
+                onCompleted: {
+                    // Handle completion logic here later
                 }
             )
         }
