@@ -1,0 +1,549 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		B9F5833E2FF7C3DA006071AF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B9F583262FF7C3D7006071AF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B9F5832D2FF7C3D7006071AF;
+			remoteInfo = FlowTimer;
+		};
+		B9F583482FF7C3DA006071AF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B9F583262FF7C3D7006071AF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B9F5832D2FF7C3D7006071AF;
+			remoteInfo = FlowTimer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B9F5832E2FF7C3D7006071AF /* FlowTimer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlowTimer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9F5833D2FF7C3DA006071AF /* FlowTimerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowTimerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9F583472FF7C3DA006071AF /* FlowTimerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowTimerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		B9F583302FF7C3D7006071AF /* FlowTimer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FlowTimer;
+			sourceTree = "<group>";
+		};
+		B9F583402FF7C3DA006071AF /* FlowTimerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FlowTimerTests;
+			sourceTree = "<group>";
+		};
+		B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FlowTimerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B9F5832B2FF7C3D7006071AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		B9F5833A2FF7C3DA006071AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		B9F583442FF7C3DA006071AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B9F583252FF7C3D7006071AF = {
+			isa = PBXGroup;
+			children = (
+				B9F583302FF7C3D7006071AF /* FlowTimer */,
+				B9F583402FF7C3DA006071AF /* FlowTimerTests */,
+				B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */,
+				B9F5832F2FF7C3D7006071AF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B9F5832F2FF7C3D7006071AF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9F5832E2FF7C3D7006071AF /* FlowTimer.app */,
+				B9F5833D2FF7C3DA006071AF /* FlowTimerTests.xctest */,
+				B9F583472FF7C3DA006071AF /* FlowTimerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B9F5832D2FF7C3D7006071AF /* FlowTimer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9F5834F2FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimer" */;
+			buildPhases = (
+				B9F5832A2FF7C3D7006071AF /* Sources */,
+				B9F5832B2FF7C3D7006071AF /* Frameworks */,
+				B9F5832C2FF7C3D7006071AF /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				B9F583302FF7C3D7006071AF /* FlowTimer */,
+			);
+			name = FlowTimer;
+			productName = FlowTimer;
+			productReference = B9F5832E2FF7C3D7006071AF /* FlowTimer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B9F5833C2FF7C3DA006071AF /* FlowTimerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9F583522FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerTests" */;
+			buildPhases = (
+				B9F583392FF7C3DA006071AF /* Sources */,
+				B9F5833A2FF7C3DA006071AF /* Frameworks */,
+				B9F5833B2FF7C3DA006071AF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9F5833F2FF7C3DA006071AF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B9F583402FF7C3DA006071AF /* FlowTimerTests */,
+			);
+			name = FlowTimerTests;
+			productName = FlowTimerTests;
+			productReference = B9F5833D2FF7C3DA006071AF /* FlowTimerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B9F583462FF7C3DA006071AF /* FlowTimerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9F583552FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerUITests" */;
+			buildPhases = (
+				B9F583432FF7C3DA006071AF /* Sources */,
+				B9F583442FF7C3DA006071AF /* Frameworks */,
+				B9F583452FF7C3DA006071AF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9F583492FF7C3DA006071AF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */,
+			);
+			name = FlowTimerUITests;
+			productName = FlowTimerUITests;
+			productReference = B9F583472FF7C3DA006071AF /* FlowTimerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B9F583262FF7C3D7006071AF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					B9F5832D2FF7C3D7006071AF = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					B9F5833C2FF7C3DA006071AF = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = B9F5832D2FF7C3D7006071AF;
+					};
+					B9F583462FF7C3DA006071AF = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = B9F5832D2FF7C3D7006071AF;
+					};
+				};
+			};
+			buildConfigurationList = B9F583292FF7C3D7006071AF /* Build configuration list for PBXProject "FlowTimer" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B9F583252FF7C3D7006071AF;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B9F5832F2FF7C3D7006071AF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B9F5832D2FF7C3D7006071AF /* FlowTimer */,
+				B9F5833C2FF7C3DA006071AF /* FlowTimerTests */,
+				B9F583462FF7C3DA006071AF /* FlowTimerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B9F5832C2FF7C3D7006071AF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		B9F5833B2FF7C3DA006071AF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		B9F583452FF7C3DA006071AF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B9F5832A2FF7C3D7006071AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		B9F583392FF7C3DA006071AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		B9F583432FF7C3DA006071AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B9F5833F2FF7C3DA006071AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B9F5832D2FF7C3D7006071AF /* FlowTimer */;
+			targetProxy = B9F5833E2FF7C3DA006071AF /* PBXContainerItemProxy */;
+		};
+		B9F583492FF7C3DA006071AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B9F5832D2FF7C3D7006071AF /* FlowTimer */;
+			targetProxy = B9F583482FF7C3DA006071AF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B9F5834D2FF7C3DA006071AF /* Debug configuration for PBXProject "FlowTimer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B9F5834E2FF7C3DA006071AF /* Release configuration for PBXProject "FlowTimer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B9F583502FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B9F583512FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimer" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B9F583532FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlowTimer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FlowTimer";
+			};
+			name = Debug;
+		};
+		B9F583542FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlowTimer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FlowTimer";
+			};
+			name = Release;
+		};
+		B9F583562FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = FlowTimer;
+			};
+			name = Debug;
+		};
+		B9F583572FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4854ZAX757;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.krishanpareek.FlowTimerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = FlowTimer;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B9F583292FF7C3D7006071AF /* Build configuration list for PBXProject "FlowTimer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9F5834D2FF7C3DA006071AF /* Debug configuration for PBXProject "FlowTimer" */,
+				B9F5834E2FF7C3DA006071AF /* Release configuration for PBXProject "FlowTimer" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B9F5834F2FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9F583502FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimer" */,
+				B9F583512FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimer" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B9F583522FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9F583532FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerTests" */,
+				B9F583542FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B9F583552FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9F583562FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerUITests" */,
+				B9F583572FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B9F583262FF7C3D7006071AF /* Project object */;
+	validationLevel = 1;
+}
