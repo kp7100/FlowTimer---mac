@@ -16,6 +16,21 @@ final class TimerManager {
     var currentSession: Int = 1
     var totalSessions: Int { settings.totalSessions }
     
+    var sessionTitle: String = "Session 1"
+    
+    var menuBarTitle: String {
+        switch phase {
+        case .work:
+            return sessionTitle
+        case .shortBreak:
+            return "Break"
+        case .longBreak:
+            return "Long Break"
+        case .flowExtension:
+            return "Flow"
+        }
+    }
+    
     init() {
         let defaultSettings = TimerSettings()
         self.settings = defaultSettings

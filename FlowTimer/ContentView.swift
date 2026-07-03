@@ -6,17 +6,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var timerManager = TimerManager()
-    
-    @State private var sessionTitle: String = "Session 1"
-    @State private var currentSession: Int = 1
-    @State private var totalSessions: Int = 4
+    @Bindable var timerManager: TimerManager
     
     var body: some View {
         VStack(spacing: 24) {
             // Editable Title
             HStack(spacing: 4) {
-                TextField("Session Title", text: $sessionTitle)
+                TextField("Session Title", text: $timerManager.sessionTitle)
                     .textFieldStyle(.plain)
                     .font(.title3)
                     .multilineTextAlignment(.center)
@@ -92,5 +88,5 @@ struct VisualEffectView: NSViewRepresentable {
 }
 
 #Preview {
-    ContentView()
+    ContentView(timerManager: TimerManager())
 }
