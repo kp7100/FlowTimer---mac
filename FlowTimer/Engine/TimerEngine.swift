@@ -1,22 +1,49 @@
 import Foundation
 
-enum TimerState: Sendable, Equatable {
+enum TimerState: Sendable {
     case idle
     case running
     case paused
     case completed
 }
 
-enum TimerPhase: Sendable, Equatable {
+extension TimerState: Equatable {
+    nonisolated static func == (lhs: TimerState, rhs: TimerState) -> Bool {
+        switch (lhs, rhs) {
+        case (.idle, .idle), (.running, .running), (.paused, .paused), (.completed, .completed): return true
+        default: return false
+        }
+    }
+}
+
+enum TimerPhase: Sendable {
     case work
     case shortBreak
     case longBreak
     case flowExtension
 }
 
-enum TimerDirection: Sendable, Equatable {
+extension TimerPhase: Equatable {
+    nonisolated static func == (lhs: TimerPhase, rhs: TimerPhase) -> Bool {
+        switch (lhs, rhs) {
+        case (.work, .work), (.shortBreak, .shortBreak), (.longBreak, .longBreak), (.flowExtension, .flowExtension): return true
+        default: return false
+        }
+    }
+}
+
+enum TimerDirection: Sendable {
     case countdown
     case countup
+}
+
+extension TimerDirection: Equatable {
+    nonisolated static func == (lhs: TimerDirection, rhs: TimerDirection) -> Bool {
+        switch (lhs, rhs) {
+        case (.countdown, .countdown), (.countup, .countup): return true
+        default: return false
+        }
+    }
 }
 
 actor TimerEngine {
@@ -39,23 +66,13 @@ actor TimerEngine {
     
     private(set) var state: TimerState = .idle {
         didSet {
-            let newState = state
-            if let callback = onStateChange {
-                Task { @MainActor in
-                    callback(newState)
-                }
-            }
+            onStateChange?(state)
         }
     }
     
     private(set) var phase: TimerPhase = .work {
         didSet {
-            let newPhase = phase
-            if let callback = onPhaseChange {
-                Task { @MainActor in
-                    callback(newPhase)
-                }
-            }
+            onPhaseChange?(phase)
         }
     }
     
@@ -95,11 +112,7 @@ actor TimerEngine {
             while !Task.isCancelled {
                 if direction == .countdown && remainingSeconds <= 0 {
                     state = .completed
-                    if let callback = onCompleted {
-                        Task { @MainActor in
-                            callback()
-                        }
-                    }
+                    onCompleted?()
                     break
                 }
                 
@@ -113,20 +126,11 @@ actor TimerEngine {
                         remainingSeconds += 1 // count up mode
                     }
                     
-                    let currentSeconds = remainingSeconds
-                    if let callback = onTick {
-                        Task { @MainActor in
-                            callback(currentSeconds)
-                        }
-                    }
+                    onTick?(remainingSeconds)
                     
                     if direction == .countdown && remainingSeconds <= 0 {
                         state = .completed
-                        if let callback = onCompleted {
-                            Task { @MainActor in
-                                callback()
-                            }
-                        }
+                        onCompleted?()
                         break
                     }
                 } catch {
@@ -152,12 +156,6 @@ actor TimerEngine {
         task = nil
         remainingSeconds = totalSeconds
         state = .idle
-        
-        let currentSeconds = remainingSeconds
-        if let callback = onTick {
-            Task { @MainActor in
-                callback(currentSeconds)
-            }
-        }
+        onTick?(remainingSeconds)
     }
 }

@@ -22,23 +22,27 @@ final class TimerManager {
             
             await engine.setCallbacks(
                 onTick: { [weak self] remainingSeconds in
-                    Task { @MainActor in
-                        self?.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
                     }
                 },
                 onStateChange: { [weak self] newState in
-                    Task { @MainActor in
-                        self?.state = newState
-                        self?.isRunning = (newState == .running)
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.state = newState
+                        self.isRunning = (newState == .running)
                     }
                 },
                 onPhaseChange: { [weak self] newPhase in
-                    Task { @MainActor in
-                        self?.phase = newPhase
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.phase = newPhase
                     }
                 },
                 onCompleted: { [weak self] in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
                         // Handle completion logic here later
                     }
                 }
