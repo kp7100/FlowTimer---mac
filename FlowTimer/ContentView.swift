@@ -29,7 +29,7 @@ struct ContentView: View {
             .padding(.top, 16)
             
             // Session Info
-            Text("Session \(currentSession) of \(totalSessions)")
+            Text("Session \(timerManager.currentSession) of \(timerManager.totalSessions)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
@@ -41,12 +41,12 @@ struct ContentView: View {
             
             // Dots
             HStack(spacing: 12) {
-                ForEach(1...totalSessions, id: \.self) { index in
+                ForEach(1...timerManager.totalSessions, id: \.self) { index in
                     Circle()
-                        .fill(index <= currentSession ? Color.accentColor : Color.secondary.opacity(0.3))
+                        .fill(index <= timerManager.currentSession ? Color.accentColor : Color.secondary.opacity(0.3))
                         .frame(width: 10, height: 10)
-                        .scaleEffect(index == currentSession ? 1.2 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: currentSession)
+                        .scaleEffect(index == timerManager.currentSession ? 1.2 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: timerManager.currentSession)
                 }
             }
             

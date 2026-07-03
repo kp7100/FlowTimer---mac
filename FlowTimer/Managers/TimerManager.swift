@@ -6,19 +6,28 @@ import Observation
 final class TimerManager {
     private let engine: TimerEngine
     
-    var remainingTimeFormatted: String = "25:00"
+    var settings = TimerSettings()
+    
+    var remainingTimeFormatted: String
     var isRunning: Bool = false
     var state: TimerState = .idle
     var phase: TimerPhase = .work
     
+    var currentSession: Int = 1
+    var totalSessions: Int { settings.totalSessions }
+    
     init() {
-        self.engine = TimerEngine(durationInSeconds: 25 * 60)
+        let defaultSettings = TimerSettings()
+        self.settings = defaultSettings
+        self.remainingTimeFormatted = TimeFormatter.format(seconds: defaultSettings.workDuration)
+        self.engine = TimerEngine(durationInSeconds: defaultSettings.workDuration)
         setupEngine()
     }
     
     private func setupEngine() {
         Task {
             await engine.setPhase(.work, direction: .countdown)
+            await engine.setDuration(settings.workDuration)
             
             await engine.setCallbacks(
                 onTick: { [weak self] remainingSeconds in
@@ -40,10 +49,44 @@ final class TimerManager {
                         self.phase = newPhase
                     }
                 },
-                onCompleted: {
-                    // Handle completion logic here later
+                onCompleted: { [weak self] in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.handlePhaseCompletion()
+                    }
                 }
             )
+        }
+    }
+    
+    private func handlePhaseCompletion() {
+        Task {
+            switch phase {
+            case .work:
+                if currentSession >= totalSessions {
+                    await engine.setPhase(.longBreak, direction: .countdown)
+                    await engine.setDuration(settings.longBreakDuration)
+                } else {
+                    await engine.setPhase(.shortBreak, direction: .countdown)
+                    await engine.setDuration(settings.shortBreakDuration)
+                }
+                await engine.start()
+                
+            case .shortBreak:
+                currentSession += 1
+                await engine.setPhase(.work, direction: .countdown)
+                await engine.setDuration(settings.workDuration)
+                await engine.start()
+                
+            case .longBreak:
+                currentSession = 1
+                await engine.setPhase(.work, direction: .countdown)
+                await engine.setDuration(settings.workDuration)
+                await engine.start()
+                
+            case .flowExtension:
+                break
+            }
         }
     }
     
@@ -67,7 +110,9 @@ final class TimerManager {
     
     func reset() {
         Task {
-            await engine.reset()
+            currentSession = 1
+            await engine.setPhase(.work, direction: .countdown)
+            await engine.setDuration(settings.workDuration)
         }
     }
 }

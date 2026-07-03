@@ -33,7 +33,7 @@ actor TimerEngine {
     private(set) var direction: TimerDirection = .countdown
     
     private(set) var remainingSeconds: Int
-    private let totalSeconds: Int
+    private(set) var totalSeconds: Int
     
     var elapsedSeconds: Int {
         totalSeconds - remainingSeconds
@@ -55,6 +55,17 @@ actor TimerEngine {
     func setPhase(_ newPhase: TimerPhase, direction: TimerDirection = .countdown) {
         self.phase = newPhase
         self.direction = direction
+    }
+    
+    func setDuration(_ seconds: Int) {
+        task?.cancel()
+        task = nil
+        self.totalSeconds = seconds
+        self.remainingSeconds = seconds
+        self.state = .idle
+        
+        let currentSeconds = remainingSeconds
+        onTick?(currentSeconds)
     }
     
     func start() {
