@@ -92,23 +92,40 @@ struct ContentView: View {
                 }
                 .padding(.bottom, 24)
             } else {
-                Button(action: {
-                    withAnimation {
-                        if timerManager.isRunning {
-                            timerManager.pause()
-                        } else {
-                            timerManager.start()
+                HStack(spacing: 12) {
+                    Color.clear.frame(width: 32, height: 32) // Balance placeholder
+                    
+                    Button(action: {
+                        withAnimation {
+                            if timerManager.isRunning {
+                                timerManager.pause()
+                            } else {
+                                timerManager.start()
+                            }
                         }
+                    }) {
+                        Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
+                            .font(.title2)
+                            .foregroundColor(Color.accentColor)
+                            .frame(width: 60, height: 60)
+                            .background(Color.accentColor.opacity(0.15))
+                            .clipShape(Circle())
                     }
-                }) {
-                    Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
-                        .font(.title2)
-                        .foregroundColor(Color.accentColor)
-                        .frame(width: 60, height: 60)
-                        .background(Color.accentColor.opacity(0.15))
-                        .clipShape(Circle())
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        withAnimation {
+                            timerManager.skipCurrentPhase()
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 .padding(.bottom, 24)
             }
             

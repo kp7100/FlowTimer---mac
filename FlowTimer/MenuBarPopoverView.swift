@@ -69,6 +69,17 @@ struct MenuBarPopoverView: View {
                 .buttonStyle(.plain)
                 .padding(.vertical, 4)
                 
+                if timerManager.phase != .flowExtension {
+                    Button(action: {
+                        timerManager.skipCurrentPhase()
+                    }) {
+                        Text("Skip")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 4)
+                }
+                
                 Button(action: {
                     openWindow(id: "mainWindow")
                     WindowManager.shared.focusMainWindow()

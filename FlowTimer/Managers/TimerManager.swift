@@ -117,6 +117,61 @@ final class TimerManager {
         }
     }
     
+    private func advanceToNextPhase(isSkip: Bool = false) async {
+        switch phase {
+        case .work:
+            if isSkip {
+                if currentSession >= totalSessions {
+                    currentPhaseDuration = settings.longBreakDuration
+                    await engine.setPhase(.longBreak, direction: .countdown)
+                    await engine.setDuration(settings.longBreakDuration)
+                } else {
+                    currentPhaseDuration = settings.shortBreakDuration
+                    await engine.setPhase(.shortBreak, direction: .countdown)
+                    await engine.setDuration(settings.shortBreakDuration)
+                }
+                if settings.autoStartBreaks {
+                    self.start()
+                }
+            } else {
+                currentPhaseStartDate = Date()
+                currentPhaseDuration = 0
+                await engine.setPhase(.flowExtension, direction: .countup)
+                await engine.setDuration(0)
+                await engine.start()
+            }
+            
+        case .shortBreak, .longBreak:
+            if phase == .shortBreak {
+                currentSession += 1
+            } else {
+                currentSession = 1
+            }
+            currentPhaseTagName = self.currentTag
+            currentPhaseDuration = settings.workDuration
+            await engine.setPhase(.work, direction: .countdown)
+            await engine.setDuration(settings.workDuration)
+            
+            if settings.autoStartWork {
+                self.start()
+            }
+            
+        case .flowExtension:
+            if currentSession >= totalSessions {
+                currentPhaseDuration = settings.longBreakDuration
+                await engine.setPhase(.longBreak, direction: .countdown)
+                await engine.setDuration(settings.longBreakDuration)
+            } else {
+                currentPhaseDuration = settings.shortBreakDuration
+                await engine.setPhase(.shortBreak, direction: .countdown)
+                await engine.setDuration(settings.shortBreakDuration)
+            }
+            if settings.autoStartBreaks {
+                self.start()
+            }
+        }
+    }
+    
     private func handlePhaseCompletion() {
         if let startDate = currentPhaseStartDate {
             let record = SessionRecord(
@@ -138,32 +193,13 @@ final class TimerManager {
                     title: "Work Session Complete",
                     body: "Flow Extension started.\nTake a break whenever you're ready."
                 )
-                
-                currentPhaseStartDate = Date()
-                currentPhaseDuration = 0
-                await engine.setPhase(.flowExtension, direction: .countup)
-                await engine.setDuration(0)
-                await engine.start()
-                
             case .shortBreak, .longBreak:
                 NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
-                if phase == .shortBreak {
-                    currentSession += 1
-                } else {
-                    currentSession = 1
-                }
-                currentPhaseTagName = self.currentTag
-                currentPhaseDuration = settings.workDuration
-                await engine.setPhase(.work, direction: .countdown)
-                await engine.setDuration(settings.workDuration)
-                
-                if settings.autoStartWork {
-                    self.start()
-                }
-                
             case .flowExtension:
                 break
             }
+            
+            await advanceToNextPhase(isSkip: false)
         }
     }
     
@@ -189,19 +225,15 @@ final class TimerManager {
                 body: "Starting your break."
             )
             
-            if currentSession >= totalSessions {
-                currentPhaseDuration = settings.longBreakDuration
-                await engine.setPhase(.longBreak, direction: .countdown)
-                await engine.setDuration(settings.longBreakDuration)
-            } else {
-                currentPhaseDuration = settings.shortBreakDuration
-                await engine.setPhase(.shortBreak, direction: .countdown)
-                await engine.setDuration(settings.shortBreakDuration)
-            }
-            
-            if settings.autoStartBreaks {
-                self.start()
-            }
+            await advanceToNextPhase(isSkip: false)
+        }
+    }
+    
+    func skipCurrentPhase() {
+        Task {
+            await engine.pause()
+            currentPhaseStartDate = nil
+            await advanceToNextPhase(isSkip: true)
         }
     }
     
