@@ -102,14 +102,9 @@ struct SettingsView: View {
             }
             
             Section("Automation") {
+                Toggle("Launch at Login", isOn: $settingsManager.settings.launchAtLogin)
                 Toggle("Start Breaks Automatically", isOn: $settingsManager.settings.autoStartBreaks)
                 Toggle("Start Focus Sessions Automatically", isOn: $settingsManager.settings.autoStartWork)
-            }
-            
-            Section("Window") {
-                @Bindable var windowManager = WindowManager.shared
-                Toggle("Always on Top", isOn: $windowManager.alwaysOnTop)
-                Toggle("Restore Previous Window Position", isOn: $windowManager.restorePosition)
             }
         }
         .padding()

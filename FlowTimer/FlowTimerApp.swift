@@ -5,8 +5,15 @@
 
 import SwiftUI
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+    }
+}
+
 @main
 struct FlowTimerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var timerManager = TimerManager()
     @Environment(\.openWindow) private var openWindow
     
@@ -21,19 +28,7 @@ struct FlowTimerApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         
-        MenuBarExtra {
-            MenuBarPopoverView(timerManager: timerManager)
-        } label: {
-            Text("\(timerManager.menuBarTitle)   [\(timerManager.remainingTimeFormatted)]")
-                .monospacedDigit()
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
-                    openWindow(id: "mainWindow")
-                    WindowManager.shared.focusMainWindow()
-                }
-        }
-        .menuBarExtraStyle(.window)
-        
-        Settings {
+        Window("Settings", id: "settingsWindow") {
             TabView {
                 SettingsView(settingsManager: .shared, timerManager: timerManager)
                     .tabItem {
@@ -46,5 +41,18 @@ struct FlowTimerApp: App {
                     }
             }
         }
+        .windowResizability(.contentSize)
+        
+        MenuBarExtra {
+            MenuBarPopoverView(timerManager: timerManager)
+        } label: {
+            Text("\(timerManager.menuBarTitle)   [\(timerManager.remainingTimeFormatted)]")
+                .monospacedDigit()
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
+                    openWindow(id: "mainWindow")
+                    WindowManager.shared.focusMainWindow()
+                }
+        }
+        .menuBarExtraStyle(.window)
     }
 }

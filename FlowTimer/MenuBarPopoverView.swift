@@ -3,7 +3,7 @@ import SwiftUI
 struct MenuBarPopoverView: View {
     @Bindable var timerManager: TimerManager
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 16) {
@@ -39,12 +39,6 @@ struct MenuBarPopoverView: View {
             
             // Controls
             VStack(spacing: 0) {
-                Toggle("Always on Top", isOn: Bindable(WindowManager.shared).alwaysOnTop)
-                    .padding(.vertical, 4)
-                
-                Divider()
-                    .padding(.vertical, 4)
-                
                 if timerManager.phase == .flowExtension {
                     Button(action: {
                         timerManager.takeBreak()
@@ -91,8 +85,13 @@ struct MenuBarPopoverView: View {
                 .padding(.vertical, 4)
                 
                 Button(action: {
-                    openSettings()
-                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    dismiss()
+                    
+                    Task { @MainActor in
+                        await Task.yield()
+                        openWindow(id: "settingsWindow")
+                        WindowManager.shared.focusSettingsWindow()
+                    }
                 }) {
                     Text("Settings")
                         .frame(maxWidth: .infinity, alignment: .leading)

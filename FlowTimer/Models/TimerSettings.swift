@@ -14,6 +14,8 @@ struct TimerSettings: Codable, Equatable {
     var autoStartBreaks: Bool = true
     var autoStartWork: Bool = true
     
+    var launchAtLogin: Bool = false
+    
     var selectedTagId: UUID? = nil
     
     var goalsEnabled: Bool = true

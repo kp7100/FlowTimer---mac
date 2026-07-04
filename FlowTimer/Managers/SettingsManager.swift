@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import AppKit
+import ServiceManagement
 
 @MainActor
 @Observable
@@ -9,6 +11,9 @@ final class SettingsManager {
     var settings: TimerSettings {
         didSet {
             save()
+            if oldValue.launchAtLogin != settings.launchAtLogin {
+                syncLaunchAtLogin()
+            }
         }
     }
     
@@ -21,11 +26,31 @@ final class SettingsManager {
         } else {
             self.settings = TimerSettings()
         }
+        
+        Task { @MainActor in
+            self.syncLaunchAtLogin()
+        }
     }
     
     private func save() {
         if let encoded = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(encoded, forKey: defaultsKey)
+        }
+    }
+    
+    private func syncLaunchAtLogin() {
+        do {
+            if settings.launchAtLogin {
+                if SMAppService.mainApp.status != .enabled {
+                    try SMAppService.mainApp.register()
+                }
+            } else {
+                if SMAppService.mainApp.status == .enabled {
+                    try SMAppService.mainApp.unregister()
+                }
+            }
+        } catch {
+            print("Launch at login sync failed: \(error.localizedDescription)")
         }
     }
 }
