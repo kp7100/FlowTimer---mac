@@ -44,6 +44,13 @@ final class HistoryManager {
         return DateInterval(start: start, end: Date())
     }
     
+    private var yesterdayInterval: DateInterval {
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: todayStart) ?? Date()
+        return DateInterval(start: yesterdayStart, end: todayStart)
+    }
+    
     private var weekInterval: DateInterval {
         let calendar = Calendar.current
         let start = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
@@ -68,6 +75,10 @@ final class HistoryManager {
         sessions(in: todayInterval, phase: .work).reduce(0) { $0 + $1.duration }
     }
     
+    func focusTimeYesterday() -> TimeInterval {
+        sessions(in: yesterdayInterval, phase: .work).reduce(0) { $0 + $1.duration }
+    }
+    
     func focusTimeThisWeek() -> TimeInterval {
         sessions(in: weekInterval, phase: .work).reduce(0) { $0 + $1.duration }
     }
@@ -80,9 +91,38 @@ final class HistoryManager {
         sessions(phase: .work).reduce(0) { $0 + $1.duration }
     }
     
+    // Flow Extension
+    func flowExtensionToday() -> TimeInterval {
+        sessions(in: todayInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
+    }
+    
+    func flowExtensionYesterday() -> TimeInterval {
+        sessions(in: yesterdayInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
+    }
+    
+    func flowExtensionThisWeek() -> TimeInterval {
+        sessions(in: weekInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
+    }
+    
+    func flowExtensionThisMonth() -> TimeInterval {
+        sessions(in: monthInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
+    }
+    
+    func totalFlowExtension() -> TimeInterval {
+        sessions(phase: .flowExtension).reduce(0) { $0 + $1.duration }
+    }
+    
+    func longestFlow() -> TimeInterval {
+        sessions(phase: .flowExtension).map { $0.duration }.max() ?? 0
+    }
+    
     // Session Counts
     func completedWorkSessionsToday() -> Int {
         sessions(in: todayInterval, phase: .work).count
+    }
+    
+    func sessionsYesterday() -> Int {
+        sessions(in: yesterdayInterval, phase: .work).count
     }
     
     func completedWorkSessionsThisWeek() -> Int {
@@ -108,6 +148,17 @@ final class HistoryManager {
     
     func completedSessions(for tag: Tag) -> Int {
         sessions(for: tag).filter { $0.phase == .work }.count
+    }
+    
+    func topTags(limit: Int = 3) -> [(String, TimeInterval)] {
+        var dict: [String: TimeInterval] = [:]
+        for session in sessions where session.phase == .work || session.phase == .flowExtension {
+            if let tag = session.tag {
+                dict[tag, default: 0] += session.duration
+            }
+        }
+        let sorted = dict.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
+        return Array(sorted.prefix(limit))
     }
     
     // Persistence
