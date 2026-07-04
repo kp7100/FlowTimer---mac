@@ -8,6 +8,11 @@ import SwiftUI
 @main
 struct FlowTimerApp: App {
     @State private var timerManager = TimerManager()
+    @Environment(\.openWindow) private var openWindow
+    
+    init() {
+        NotificationManager.shared.requestAuthorization()
+    }
     
     var body: some Scene {
         WindowGroup(id: "mainWindow") {
@@ -21,6 +26,10 @@ struct FlowTimerApp: App {
         } label: {
             Text("\(timerManager.menuBarTitle)   [\(timerManager.remainingTimeFormatted)]")
                 .monospacedDigit()
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
+                    openWindow(id: "mainWindow")
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                }
         }
         .menuBarExtraStyle(.window)
         

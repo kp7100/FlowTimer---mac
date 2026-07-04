@@ -79,21 +79,25 @@ final class TimerManager {
             switch phase {
             case .work:
                 if currentSession >= totalSessions {
+                    NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a long break.")
                     await engine.setPhase(.longBreak, direction: .countdown)
                     await engine.setDuration(settings.longBreakDuration)
                 } else {
+                    NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a short break.")
                     await engine.setPhase(.shortBreak, direction: .countdown)
                     await engine.setDuration(settings.shortBreakDuration)
                 }
                 await engine.start()
                 
             case .shortBreak:
+                NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession += 1
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
                 await engine.start()
                 
             case .longBreak:
+                NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession = 1
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
