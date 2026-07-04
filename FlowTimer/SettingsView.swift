@@ -12,6 +12,38 @@ struct SettingsView: View {
     
     var body: some View {
         Form {
+            Section("Daily Goal") {
+                Toggle("Enable Daily Goals", isOn: $settingsManager.settings.goalsEnabled)
+                
+                if settingsManager.settings.goalsEnabled {
+                    Picker("Measure Progress By", selection: $settingsManager.settings.goalType) {
+                        Text("Focus Time").tag(DailyGoalType.focusTime)
+                        Text("Completed Sessions").tag(DailyGoalType.sessions)
+                    }
+                    .pickerStyle(.radioGroup)
+                    
+                    if settingsManager.settings.goalType == .focusTime {
+                        Picker("Goal", selection: $settingsManager.settings.goalFocusTime) {
+                        Text("30 min").tag(TimeInterval(30 * 60))
+                        Text("1 hour").tag(TimeInterval(3600))
+                        Text("2 hours").tag(TimeInterval(2 * 3600))
+                        Text("3 hours").tag(TimeInterval(3 * 3600))
+                        Text("4 hours").tag(TimeInterval(4 * 3600))
+                        Text("5 hours").tag(TimeInterval(5 * 3600))
+                        Text("6 hours").tag(TimeInterval(6 * 3600))
+                    }
+                } else {
+                    Picker("Goal", selection: $settingsManager.settings.goalSessions) {
+                        Text("2 Sessions").tag(2)
+                        Text("4 Sessions").tag(4)
+                        Text("6 Sessions").tag(6)
+                        Text("8 Sessions").tag(8)
+                        Text("10 Sessions").tag(10)
+                    }
+                }
+                }
+            }
+            
             Section("Tags") {
                 @Bindable var tagManager = TagManager.shared
                 Picker("Selected Tag", selection: $settingsManager.settings.selectedTagId) {

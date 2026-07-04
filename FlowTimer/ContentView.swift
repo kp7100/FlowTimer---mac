@@ -10,6 +10,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 24) {
+            
             // Editable Title
             HStack(spacing: 4) {
                 TextField("Session Title", text: $timerManager.sessionTitle)
@@ -46,15 +47,11 @@ struct ContentView: View {
                 .monospacedDigit()
                 .padding(.vertical, -10)
             
-            // Dots
-            HStack(spacing: 12) {
-                ForEach(1...timerManager.totalSessions, id: \.self) { index in
-                    Circle()
-                        .fill(index <= timerManager.currentSession ? Color.accentColor : Color.secondary.opacity(0.3))
-                        .frame(width: 10, height: 10)
-                        .scaleEffect(index == timerManager.currentSession ? 1.2 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: timerManager.currentSession)
-                }
+            // Progress Indicators
+            if SettingsManager.shared.settings.goalsEnabled {
+                GoalProgressView(progress: GoalManager.shared.progress)
+            } else {
+                SessionProgressView(currentSession: timerManager.currentSession, totalSessions: timerManager.totalSessions)
             }
             
             // Controls
@@ -119,6 +116,52 @@ struct ContentView: View {
         .frame(width: 320, height: 430)
         // Background blur with no borders
         .background(VisualEffectView().ignoresSafeArea())
+    }
+}
+
+struct GoalProgressView: View {
+    let progress: DailyGoalProgress
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(progress.title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            ProgressDotsView(totalDots: progress.totalDots, filledDots: progress.filledDots)
+            
+            Text(progress.displayText)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct SessionProgressView: View {
+    let currentSession: Int
+    let totalSessions: Int
+    
+    var body: some View {
+        ProgressDotsView(totalDots: totalSessions, filledDots: currentSession, activeDotIndex: currentSession - 1)
+    }
+}
+
+struct ProgressDotsView: View {
+    let totalDots: Int
+    let filledDots: Int
+    var activeDotIndex: Int? = nil
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            let validTotal = max(1, totalDots)
+            ForEach(0..<validTotal, id: \.self) { index in
+                Circle()
+                    .fill(index < filledDots ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: 10, height: 10)
+                    .scaleEffect(index == activeDotIndex ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: filledDots)
+            }
+        }
     }
 }
 
