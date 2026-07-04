@@ -14,9 +14,17 @@ final class TimerManager {
     var isRunning: Bool = false
     var state: TimerState = .idle
     var phase: TimerPhase = .work
-    
     var currentSession: Int = 1
     var totalSessions: Int { settings.sessionsPerCycle }
+    
+    var currentTag: String? {
+        guard let id = settings.selectedTagId,
+              let tag = TagManager.shared.tags.first(where: { $0.id == id }) else { return nil }
+        return tag.name
+    }
+    
+    var activeTag: String? { currentPhaseTagName }
+    private var currentPhaseTagName: String?
     
     private var currentPhaseStartDate: Date?
     private var currentPhaseDuration: Int
@@ -41,6 +49,14 @@ final class TimerManager {
         self.currentPhaseDuration = settingsManager.settings.workDuration
         self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
+        
+        let initialTagId = settingsManager.settings.selectedTagId
+        if let id = initialTagId, let tag = TagManager.shared.tags.first(where: { $0.id == id }) {
+            self.currentPhaseTagName = tag.name
+        } else {
+            self.currentPhaseTagName = nil
+        }
+        
         setupEngine()
     }
     
@@ -70,7 +86,12 @@ final class TimerManager {
                 onTick: { [weak self] remainingSeconds in
                     Task { @MainActor [weak self] in
                         guard let self else { return }
-                        self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
+                        if self.phase == .flowExtension {
+                            self.currentPhaseDuration = remainingSeconds
+                            self.remainingTimeFormatted = "+\(TimeFormatter.format(seconds: remainingSeconds))"
+                        } else {
+                            self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
+                        }
                     }
                 },
                 onStateChange: { [weak self] newState in
@@ -104,7 +125,7 @@ final class TimerManager {
                 startDate: startDate,
                 endDate: Date(),
                 duration: TimeInterval(currentPhaseDuration),
-                tag: nil
+                tag: (phase == .work || phase == .flowExtension) ? currentPhaseTagName : nil
             )
             HistoryManager.shared.addSession(record)
         }
@@ -113,36 +134,25 @@ final class TimerManager {
         Task {
             switch phase {
             case .work:
-                if currentSession >= totalSessions {
-                    NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a long break.")
-                    currentPhaseDuration = settings.longBreakDuration
-                    await engine.setPhase(.longBreak, direction: .countdown)
-                    await engine.setDuration(settings.longBreakDuration)
+                NotificationManager.shared.sendNotification(
+                    title: "Work Session Complete",
+                    body: "Flow Extension started.\nTake a break whenever you're ready."
+                )
+                
+                currentPhaseStartDate = Date()
+                currentPhaseDuration = 0
+                await engine.setPhase(.flowExtension, direction: .countup)
+                await engine.setDuration(0)
+                await engine.start()
+                
+            case .shortBreak, .longBreak:
+                NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
+                if phase == .shortBreak {
+                    currentSession += 1
                 } else {
-                    NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a short break.")
-                    currentPhaseDuration = settings.shortBreakDuration
-                    await engine.setPhase(.shortBreak, direction: .countdown)
-                    await engine.setDuration(settings.shortBreakDuration)
+                    currentSession = 1
                 }
-                
-                if settings.autoStartBreaks {
-                    self.start()
-                }
-                
-            case .shortBreak:
-                NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
-                currentSession += 1
-                currentPhaseDuration = settings.workDuration
-                await engine.setPhase(.work, direction: .countdown)
-                await engine.setDuration(settings.workDuration)
-                
-                if settings.autoStartWork {
-                    self.start()
-                }
-                
-            case .longBreak:
-                NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
-                currentSession = 1
+                currentPhaseTagName = self.currentTag
                 currentPhaseDuration = settings.workDuration
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
@@ -153,6 +163,44 @@ final class TimerManager {
                 
             case .flowExtension:
                 break
+            }
+        }
+    }
+    
+    func takeBreak() {
+        Task {
+            await engine.pause()
+            
+            if let startDate = currentPhaseStartDate {
+                let record = SessionRecord(
+                    id: UUID(),
+                    phase: .flowExtension,
+                    startDate: startDate,
+                    endDate: Date(),
+                    duration: TimeInterval(currentPhaseDuration),
+                    tag: currentPhaseTagName
+                )
+                HistoryManager.shared.addSession(record)
+            }
+            currentPhaseStartDate = nil
+            
+            NotificationManager.shared.sendNotification(
+                title: "Flow Extension Complete",
+                body: "Starting your break."
+            )
+            
+            if currentSession >= totalSessions {
+                currentPhaseDuration = settings.longBreakDuration
+                await engine.setPhase(.longBreak, direction: .countdown)
+                await engine.setDuration(settings.longBreakDuration)
+            } else {
+                currentPhaseDuration = settings.shortBreakDuration
+                await engine.setPhase(.shortBreak, direction: .countdown)
+                await engine.setDuration(settings.shortBreakDuration)
+            }
+            
+            if settings.autoStartBreaks {
+                self.start()
             }
         }
     }
@@ -182,6 +230,7 @@ final class TimerManager {
         Task {
             currentSession = 1
             currentPhaseStartDate = nil
+            currentPhaseTagName = self.currentTag
             currentPhaseDuration = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)

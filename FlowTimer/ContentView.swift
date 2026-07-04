@@ -24,6 +24,17 @@ struct ContentView: View {
             }
             .padding(.top, 16)
             
+            if let activeTag = timerManager.activeTag, (timerManager.phase == .work || timerManager.phase == .flowExtension) {
+                Text(activeTag)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor.opacity(0.15))
+                    .foregroundColor(Color.accentColor)
+                    .clipShape(Capsule())
+            }
+            
             // Session Info
             Text("Session \(timerManager.currentSession) of \(timerManager.totalSessions)")
                 .font(.subheadline)
@@ -47,24 +58,62 @@ struct ContentView: View {
             }
             
             // Controls
-            Button(action: {
-                withAnimation {
-                    if timerManager.isRunning {
-                        timerManager.pause()
-                    } else {
-                        timerManager.start()
+            if timerManager.phase == .flowExtension {
+                HStack(spacing: 16) {
+                    Button(action: {
+                        withAnimation {
+                            if timerManager.isRunning {
+                                timerManager.pause()
+                            } else {
+                                timerManager.start()
+                            }
+                        }
+                    }) {
+                        Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44)
+                            .background(Color.secondary.opacity(0.15))
+                            .clipShape(Circle())
                     }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        withAnimation {
+                            timerManager.takeBreak()
+                        }
+                    }) {
+                        Text("Take Break")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .frame(height: 44)
+                            .background(Color.accentColor)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
-            }) {
-                Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
-                    .font(.title2)
-                    .foregroundColor(Color.accentColor)
-                    .frame(width: 60, height: 60)
-                    .background(Color.accentColor.opacity(0.15))
-                    .clipShape(Circle())
+                .padding(.bottom, 24)
+            } else {
+                Button(action: {
+                    withAnimation {
+                        if timerManager.isRunning {
+                            timerManager.pause()
+                        } else {
+                            timerManager.start()
+                        }
+                    }
+                }) {
+                    Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                        .foregroundColor(Color.accentColor)
+                        .frame(width: 60, height: 60)
+                        .background(Color.accentColor.opacity(0.15))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 24)
             }
-            .buttonStyle(.plain)
-            .padding(.bottom, 24)
             
         }
         .frame(width: 320, height: 430)

@@ -8,4 +8,6 @@ struct TimerSettings: Codable, Equatable {
     
     var autoStartBreaks: Bool = true
     var autoStartWork: Bool = true
+    
+    var selectedTagId: UUID? = nil
 }

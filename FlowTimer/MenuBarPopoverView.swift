@@ -47,6 +47,17 @@ struct MenuBarPopoverView: View {
                 Divider()
                     .padding(.vertical, 4)
                 
+                if timerManager.phase == .flowExtension {
+                    Button(action: {
+                        timerManager.takeBreak()
+                    }) {
+                        Text("Take Break")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 4)
+                }
+                
                 Button(action: {
                     if timerManager.isRunning {
                         timerManager.pause()

@@ -8,9 +8,25 @@ struct SettingsView: View {
     let shortBreakOptions = [5, 10]
     let longBreakOptions = [15, 20, 30]
     let sessionOptions = [2, 3, 4, 5]
+    @State private var showingManageTags = false
     
     var body: some View {
         Form {
+            Section("Tags") {
+                @Bindable var tagManager = TagManager.shared
+                Picker("Selected Tag", selection: $settingsManager.settings.selectedTagId) {
+                    Text("None").tag(UUID?.none)
+                    Divider()
+                    ForEach(tagManager.tags) { tag in
+                        Text(tag.name).tag(Optional(tag.id))
+                    }
+                }
+                
+                Button("Manage Tags...") {
+                    showingManageTags = true
+                }
+            }
+            
             Section("Focus") {
                 Picker("Work Duration", selection: $settingsManager.settings.workDuration) {
                     // TESTING OPTIONS
@@ -65,7 +81,10 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 400, height: 480)
+        .frame(width: 400, height: 580)
+        .sheet(isPresented: $showingManageTags) {
+            ManageTagsView()
+        }
         .onChange(of: settingsManager.settings) { _, _ in
             timerManager.settingsDidChange()
         }

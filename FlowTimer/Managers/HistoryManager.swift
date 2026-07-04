@@ -97,6 +97,19 @@ final class HistoryManager {
         sessions(phase: .work).count
     }
     
+    // Tag Queries
+    func sessions(for tag: Tag) -> [SessionRecord] {
+        sessions.filter { $0.tag == tag.name }
+    }
+    
+    func focusTime(for tag: Tag) -> TimeInterval {
+        sessions(for: tag).filter { $0.phase == .work }.reduce(0) { $0 + $1.duration }
+    }
+    
+    func completedSessions(for tag: Tag) -> Int {
+        sessions(for: tag).filter { $0.phase == .work }.count
+    }
+    
     // Persistence
     private func loadHistory() {
         guard let url = fileURL, fileManager.fileExists(atPath: url.path) else { return }
@@ -117,6 +130,11 @@ final class HistoryManager {
         do {
             let data = try JSONEncoder().encode(sessions)
             try data.write(to: url, options: .atomic)
+            
+            // TESTING OPTIONS - DEBUG LOGGING
+            print("History saved to:", url.path)
+            print("Total records:", sessions.count)
+            // END TESTING OPTIONS
         } catch {
             print("Failed to save history: \(error)")
         }
