@@ -84,6 +84,11 @@ struct VisualEffectView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        Task { @MainActor in
+            if let window = nsView.window, WindowManager.shared.mainWindow != window {
+                WindowManager.shared.mainWindow = window
+            }
+        }
     }
 }
 

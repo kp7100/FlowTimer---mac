@@ -6,7 +6,9 @@ import Observation
 final class TimerManager {
     private let engine: TimerEngine
     
-    var settings = TimerSettings()
+    private var settingsManager: SettingsManager
+    
+    var settings: TimerSettings { settingsManager.settings }
     
     var remainingTimeFormatted: String
     var isRunning: Bool = false
@@ -14,7 +16,7 @@ final class TimerManager {
     var phase: TimerPhase = .work
     
     var currentSession: Int = 1
-    var totalSessions: Int { settings.totalSessions }
+    var totalSessions: Int { settings.sessionsPerCycle }
     
     var sessionTitle: String = "Session 1"
     
@@ -31,12 +33,20 @@ final class TimerManager {
         }
     }
     
-    init() {
-        let defaultSettings = TimerSettings()
-        self.settings = defaultSettings
-        self.remainingTimeFormatted = TimeFormatter.format(seconds: defaultSettings.workDuration)
-        self.engine = TimerEngine(durationInSeconds: defaultSettings.workDuration)
+    init(settingsManager: SettingsManager = .shared) {
+        self.settingsManager = settingsManager
+        self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
+        self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
         setupEngine()
+    }
+    
+    func settingsDidChange() {
+        if state == .idle {
+            Task {
+                await engine.setDuration(settings.workDuration)
+                self.remainingTimeFormatted = TimeFormatter.format(seconds: settings.workDuration)
+            }
+        }
     }
     
     private func setupEngine() {
@@ -87,21 +97,30 @@ final class TimerManager {
                     await engine.setPhase(.shortBreak, direction: .countdown)
                     await engine.setDuration(settings.shortBreakDuration)
                 }
-                await engine.start()
+                
+                if settings.autoStartBreaks {
+                    await engine.start()
+                }
                 
             case .shortBreak:
                 NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession += 1
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
-                await engine.start()
+                
+                if settings.autoStartWork {
+                    await engine.start()
+                }
                 
             case .longBreak:
                 NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession = 1
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
-                await engine.start()
+                
+                if settings.autoStartWork {
+                    await engine.start()
+                }
                 
             case .flowExtension:
                 break

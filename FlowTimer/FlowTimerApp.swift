@@ -15,7 +15,7 @@ struct FlowTimerApp: App {
     }
     
     var body: some Scene {
-        WindowGroup(id: "mainWindow") {
+        Window("FlowTimer", id: "mainWindow") {
             ContentView(timerManager: timerManager)
         }
         .windowStyle(.hiddenTitleBar)
@@ -28,22 +28,13 @@ struct FlowTimerApp: App {
                 .monospacedDigit()
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
                     openWindow(id: "mainWindow")
-                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    WindowManager.shared.focusMainWindow()
                 }
         }
         .menuBarExtraStyle(.window)
         
         Settings {
-            VStack(spacing: 8) {
-                Text("FlowTimer")
-                    .font(.title)
-                    .fontWeight(.bold)
-                Text("Settings")
-                    .font(.headline)
-                Text("Coming Soon")
-                    .foregroundColor(.secondary)
-            }
-            .frame(width: 400, height: 300)
+            SettingsView(settingsManager: .shared, timerManager: timerManager)
         }
     }
 }

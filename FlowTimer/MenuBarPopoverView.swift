@@ -41,6 +41,12 @@ struct MenuBarPopoverView: View {
             
             // Controls
             VStack(spacing: 0) {
+                Toggle("Always on Top", isOn: Bindable(WindowManager.shared).alwaysOnTop)
+                    .padding(.vertical, 4)
+                
+                Divider()
+                    .padding(.vertical, 4)
+                
                 Button(action: {
                     if timerManager.isRunning {
                         timerManager.pause()
@@ -56,7 +62,7 @@ struct MenuBarPopoverView: View {
                 
                 Button(action: {
                     openWindow(id: "mainWindow")
-                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    WindowManager.shared.focusMainWindow()
                 }) {
                     Text("Open Main Window")
                         .frame(maxWidth: .infinity, alignment: .leading)
