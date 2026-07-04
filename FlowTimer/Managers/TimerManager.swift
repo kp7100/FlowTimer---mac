@@ -18,6 +18,9 @@ final class TimerManager {
     var currentSession: Int = 1
     var totalSessions: Int { settings.sessionsPerCycle }
     
+    private var currentPhaseStartDate: Date?
+    private var currentPhaseDuration: Int
+    
     var sessionTitle: String = "Session 1"
     
     var menuBarTitle: String {
@@ -35,6 +38,7 @@ final class TimerManager {
     
     init(settingsManager: SettingsManager = .shared) {
         self.settingsManager = settingsManager
+        self.currentPhaseDuration = settingsManager.settings.workDuration
         self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
         setupEngine()
@@ -43,8 +47,16 @@ final class TimerManager {
     func settingsDidChange() {
         if state == .idle {
             Task {
-                await engine.setDuration(settings.workDuration)
-                self.remainingTimeFormatted = TimeFormatter.format(seconds: settings.workDuration)
+                let duration: Int
+                switch phase {
+                case .work: duration = settings.workDuration
+                case .shortBreak: duration = settings.shortBreakDuration
+                case .longBreak: duration = settings.longBreakDuration
+                case .flowExtension: duration = settings.workDuration
+                }
+                self.currentPhaseDuration = duration
+                await engine.setDuration(duration)
+                self.remainingTimeFormatted = TimeFormatter.format(seconds: duration)
             }
         }
     }
@@ -85,41 +97,58 @@ final class TimerManager {
     }
     
     private func handlePhaseCompletion() {
+        if let startDate = currentPhaseStartDate {
+            let record = SessionRecord(
+                id: UUID(),
+                phase: phase,
+                startDate: startDate,
+                endDate: Date(),
+                duration: TimeInterval(currentPhaseDuration),
+                tag: nil
+            )
+            HistoryManager.shared.addSession(record)
+        }
+        currentPhaseStartDate = nil
+        
         Task {
             switch phase {
             case .work:
                 if currentSession >= totalSessions {
                     NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a long break.")
+                    currentPhaseDuration = settings.longBreakDuration
                     await engine.setPhase(.longBreak, direction: .countdown)
                     await engine.setDuration(settings.longBreakDuration)
                 } else {
                     NotificationManager.shared.sendNotification(title: "Work Session Complete", body: "Time for a short break.")
+                    currentPhaseDuration = settings.shortBreakDuration
                     await engine.setPhase(.shortBreak, direction: .countdown)
                     await engine.setDuration(settings.shortBreakDuration)
                 }
                 
                 if settings.autoStartBreaks {
-                    await engine.start()
+                    self.start()
                 }
                 
             case .shortBreak:
                 NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession += 1
+                currentPhaseDuration = settings.workDuration
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
                 
                 if settings.autoStartWork {
-                    await engine.start()
+                    self.start()
                 }
                 
             case .longBreak:
                 NotificationManager.shared.sendNotification(title: "Break Complete", body: "Ready for another focus session.")
                 currentSession = 1
+                currentPhaseDuration = settings.workDuration
                 await engine.setPhase(.work, direction: .countdown)
                 await engine.setDuration(settings.workDuration)
                 
                 if settings.autoStartWork {
-                    await engine.start()
+                    self.start()
                 }
                 
             case .flowExtension:
@@ -129,6 +158,9 @@ final class TimerManager {
     }
     
     func start() {
+        if currentPhaseStartDate == nil {
+            currentPhaseStartDate = Date()
+        }
         Task {
             await engine.start()
         }
@@ -149,6 +181,8 @@ final class TimerManager {
     func reset() {
         Task {
             currentSession = 1
+            currentPhaseStartDate = nil
+            currentPhaseDuration = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
         }
