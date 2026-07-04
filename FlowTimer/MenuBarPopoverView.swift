@@ -23,13 +23,11 @@ struct MenuBarPopoverView: View {
                 .font(.system(size: 48, weight: .light, design: .default))
                 .monospacedDigit()
             
-            // Dots
-            HStack(spacing: 8) {
-                ForEach(1...timerManager.totalSessions, id: \.self) { index in
-                    Circle()
-                        .fill(index <= timerManager.currentSession ? Color.accentColor : Color.secondary.opacity(0.3))
-                        .frame(width: 8, height: 8)
-                }
+            // Progress Indicators
+            if SettingsManager.shared.settings.goalsEnabled {
+                GoalProgressView(progress: GoalManager.shared.progress, showTitle: false, dotSize: 8, spacing: 8)
+            } else {
+                SessionProgressView(currentSession: timerManager.currentSession, totalSessions: timerManager.totalSessions, dotSize: 8, spacing: 8)
             }
             
             // Phase Text

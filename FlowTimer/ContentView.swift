@@ -121,14 +121,19 @@ struct ContentView: View {
 
 struct GoalProgressView: View {
     let progress: DailyGoalProgress
+    var showTitle: Bool = true
+    var dotSize: CGFloat = 10
+    var spacing: CGFloat = 12
     
     var body: some View {
         VStack(spacing: 6) {
-            Text(progress.title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if showTitle {
+                Text(progress.title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             
-            ProgressDotsView(totalDots: progress.totalDots, filledDots: progress.filledDots)
+            ProgressDotsView(totalDots: progress.totalDots, filledDots: progress.filledDots, dotSize: dotSize, spacing: spacing)
             
             Text(progress.displayText)
                 .font(.caption2)
@@ -140,9 +145,11 @@ struct GoalProgressView: View {
 struct SessionProgressView: View {
     let currentSession: Int
     let totalSessions: Int
+    var dotSize: CGFloat = 10
+    var spacing: CGFloat = 12
     
     var body: some View {
-        ProgressDotsView(totalDots: totalSessions, filledDots: currentSession, activeDotIndex: currentSession - 1)
+        ProgressDotsView(totalDots: totalSessions, filledDots: currentSession, activeDotIndex: currentSession - 1, dotSize: dotSize, spacing: spacing)
     }
 }
 
@@ -150,14 +157,16 @@ struct ProgressDotsView: View {
     let totalDots: Int
     let filledDots: Int
     var activeDotIndex: Int? = nil
+    var dotSize: CGFloat = 10
+    var spacing: CGFloat = 12
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: spacing) {
             let validTotal = max(1, totalDots)
             ForEach(0..<validTotal, id: \.self) { index in
                 Circle()
                     .fill(index < filledDots ? Color.accentColor : Color.secondary.opacity(0.3))
-                    .frame(width: 10, height: 10)
+                    .frame(width: dotSize, height: dotSize)
                     .scaleEffect(index == activeDotIndex ? 1.2 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: filledDots)
             }
