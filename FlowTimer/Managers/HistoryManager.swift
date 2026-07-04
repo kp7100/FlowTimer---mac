@@ -37,28 +37,64 @@ final class HistoryManager {
         saveHistory()
     }
     
-    // Query API
-    func allSessions() -> [SessionRecord] { sessions }
-    
-    func todaySessions() -> [SessionRecord] {
+    // Date Helpers
+    private var todayInterval: DateInterval {
         let calendar = Calendar.current
-        return sessions.filter { calendar.isDateInToday($0.endDate) }
+        let start = calendar.startOfDay(for: Date())
+        return DateInterval(start: start, end: Date())
     }
     
-    func workSessions() -> [SessionRecord] { sessions.filter { $0.phase == .work } }
-    func shortBreakSessions() -> [SessionRecord] { sessions.filter { $0.phase == .shortBreak } }
-    func longBreakSessions() -> [SessionRecord] { sessions.filter { $0.phase == .longBreak } }
+    private var weekInterval: DateInterval {
+        let calendar = Calendar.current
+        let start = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        return DateInterval(start: start, end: Date())
+    }
+    
+    private var monthInterval: DateInterval {
+        let calendar = Calendar.current
+        let start = calendar.dateInterval(of: .month, for: Date())?.start ?? Date()
+        return DateInterval(start: start, end: Date())
+    }
+    
+    // Core filtering
+    func sessions(in interval: DateInterval? = nil, phase: TimerPhase = .work) -> [SessionRecord] {
+        let filteredByPhase = sessions.filter { $0.phase == phase }
+        guard let interval = interval else { return filteredByPhase }
+        return filteredByPhase.filter { interval.contains($0.endDate) }
+    }
+    
+    // Focus Time
+    func focusTimeToday() -> TimeInterval {
+        sessions(in: todayInterval, phase: .work).reduce(0) { $0 + $1.duration }
+    }
+    
+    func focusTimeThisWeek() -> TimeInterval {
+        sessions(in: weekInterval, phase: .work).reduce(0) { $0 + $1.duration }
+    }
+    
+    func focusTimeThisMonth() -> TimeInterval {
+        sessions(in: monthInterval, phase: .work).reduce(0) { $0 + $1.duration }
+    }
     
     func totalFocusTime() -> TimeInterval {
-        workSessions().reduce(0) { $0 + $1.duration }
+        sessions(phase: .work).reduce(0) { $0 + $1.duration }
     }
     
-    func totalBreakTime() -> TimeInterval {
-        (shortBreakSessions() + longBreakSessions()).reduce(0) { $0 + $1.duration }
+    // Session Counts
+    func completedWorkSessionsToday() -> Int {
+        sessions(in: todayInterval, phase: .work).count
     }
     
-    func totalCompletedSessions() -> Int {
-        sessions.count
+    func completedWorkSessionsThisWeek() -> Int {
+        sessions(in: weekInterval, phase: .work).count
+    }
+    
+    func completedWorkSessionsThisMonth() -> Int {
+        sessions(in: monthInterval, phase: .work).count
+    }
+    
+    func totalCompletedWorkSessions() -> Int {
+        sessions(phase: .work).count
     }
     
     // Persistence

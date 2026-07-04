@@ -34,7 +34,17 @@ struct FlowTimerApp: App {
         .menuBarExtraStyle(.window)
         
         Settings {
-            SettingsView(settingsManager: .shared, timerManager: timerManager)
+            TabView {
+                SettingsView(settingsManager: .shared, timerManager: timerManager)
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+                
+                StatisticsView()
+                    .tabItem {
+                        Label("Statistics", systemImage: "chart.bar.fill")
+                    }
+            }
         }
     }
 }
