@@ -7,23 +7,21 @@ import SwiftUI
 
 struct ContentView: View {
     @Bindable var timerManager: TimerManager
+    @FocusState private var isTitleFocused: Bool
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             
             // Editable Title
-            HStack(spacing: 4) {
-                TextField("Session Title", text: $timerManager.sessionTitle)
-                    .textFieldStyle(.plain)
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 200)
-                
-                Image(systemName: "pencil")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 16)
+            TextField("Session Title", text: $timerManager.sessionTitle)
+                .textFieldStyle(.plain)
+                .font(.title3)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 200)
+                .focused($isTitleFocused)
+                .onSubmit {
+                    isTitleFocused = false
+                }
             
             if let activeTag = timerManager.activeTag, (timerManager.phase == .work || timerManager.phase == .flowExtension) {
                 Text(activeTag)
@@ -43,7 +41,7 @@ struct ContentView: View {
             
             // Timer Display
             Text(timerManager.remainingTimeFormatted)
-                .font(.system(size: 72, weight: .light, design: .default))
+                .font(.system(size: 72, weight: .regular, design: .default))
                 .monospacedDigit()
                 .padding(.vertical, -10)
             
@@ -90,7 +88,6 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.bottom, 24)
             } else {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 32, height: 32) // Balance placeholder
@@ -126,13 +123,17 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.bottom, 24)
             }
             
         }
-        .frame(width: 320, height: 430)
-        // Background blur with no borders
-        .background(VisualEffectView().ignoresSafeArea())
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isTitleFocused = false
+        }
+        .frame(width: 380, height: 280)
+        // Clean white background behavior
+        .background(Color(NSColor.windowBackgroundColor).ignoresSafeArea())
+        .background(WindowAccessorView())
     }
 }
 
@@ -191,20 +192,18 @@ struct ProgressDotsView: View {
     }
 }
 
-// Helper to get native NSVisualEffectView for that "ultra thin" glass look
-struct VisualEffectView: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.blendingMode = .behindWindow
-        view.state = .active
-        view.material = .underWindowBackground
+struct WindowAccessorView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
         return view
     }
     
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+    func updateNSView(_ nsView: NSView, context: Context) {
         Task { @MainActor in
             if let window = nsView.window, WindowManager.shared.mainWindow != window {
                 WindowManager.shared.mainWindow = window
+                window.isOpaque = false
+                window.backgroundColor = .clear
             }
         }
     }
