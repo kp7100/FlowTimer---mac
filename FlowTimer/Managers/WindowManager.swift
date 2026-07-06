@@ -13,15 +13,28 @@ final class WindowManager {
         }
     }
     
+    weak var miniWindow: NSWindow? {
+        didSet {
+            setupMiniWindow()
+        }
+    }
+    
     private init() {
         UserDefaults.standard.removeObject(forKey: "alwaysOnTop")
         UserDefaults.standard.removeObject(forKey: "restorePosition")
         
         NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: nil, queue: .main) { [weak self] notification in
-            guard let self = self, let window = notification.object as? NSWindow, window == self.mainWindow else { return }
-            let frame = window.frame
-            UserDefaults.standard.set(frame.origin.x, forKey: "windowX")
-            UserDefaults.standard.set(frame.origin.y, forKey: "windowY")
+            guard let self = self, let window = notification.object as? NSWindow else { return }
+            
+            if window == self.mainWindow {
+                let frame = window.frame
+                UserDefaults.standard.set(frame.origin.x, forKey: "windowX")
+                UserDefaults.standard.set(frame.origin.y, forKey: "windowY")
+            } else if window == self.miniWindow {
+                let frame = window.frame
+                UserDefaults.standard.set(frame.origin.x, forKey: "miniWindowX")
+                UserDefaults.standard.set(frame.origin.y, forKey: "miniWindowY")
+            }
         }
     }
     
@@ -32,6 +45,18 @@ final class WindowManager {
         
         let x = UserDefaults.standard.object(forKey: "windowX") as? CGFloat
         let y = UserDefaults.standard.object(forKey: "windowY") as? CGFloat
+        if let x = x, let y = y {
+            window.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+    }
+    
+    private func setupMiniWindow() {
+        guard let window = miniWindow else { return }
+        
+        window.level = .floating
+        
+        let x = UserDefaults.standard.object(forKey: "miniWindowX") as? CGFloat
+        let y = UserDefaults.standard.object(forKey: "miniWindowY") as? CGFloat
         if let x = x, let y = y {
             window.setFrameOrigin(NSPoint(x: x, y: y))
         }

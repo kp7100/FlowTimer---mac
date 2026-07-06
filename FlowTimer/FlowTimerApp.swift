@@ -43,6 +43,12 @@ struct FlowTimerApp: App {
         }
         .windowResizability(.contentSize)
         
+        Window("Mini Timer", id: "miniTimerWindow") {
+            CompactTimerView(timerManager: timerManager)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        
         MenuBarExtra {
             MenuBarPopoverView(timerManager: timerManager)
         } label: {

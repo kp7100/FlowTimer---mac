@@ -73,23 +73,7 @@ struct ContentView: View {
                 // Controls
                 if timerManager.phase == .flowExtension {
                     HStack(spacing: 16) {
-                        Button(action: {
-                            withAnimation {
-                                if timerManager.isRunning {
-                                    timerManager.pause()
-                                } else {
-                                    timerManager.start()
-                                }
-                            }
-                        }) {
-                            Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
-                                .font(.title2)
-                                .foregroundColor(.secondary)
-                                .frame(width: 44, height: 44)
-                                .background(Color.secondary.opacity(0.15))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
+                        PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .title2)
                         
                         Button(action: {
                             withAnimation {
@@ -111,23 +95,7 @@ struct ContentView: View {
                     HStack(spacing: 12) {
                         Color.clear.frame(width: 32, height: 32) // Balance placeholder
                         
-                        Button(action: {
-                            withAnimation {
-                                if timerManager.isRunning {
-                                    timerManager.pause()
-                                } else {
-                                    timerManager.start()
-                                }
-                            }
-                        }) {
-                            Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
-                                .font(.title2)
-                                .foregroundColor(Color.accentColor)
-                                .frame(width: 60, height: 60)
-                                .background(Color.accentColor.opacity(0.15))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
+                        PlayPauseButton(timerManager: timerManager, size: 60, iconSize: .title2)
                         
                         Button(action: {
                             withAnimation {
@@ -172,6 +140,7 @@ struct ContentView: View {
 struct GoalProgressView: View {
     let progress: DailyGoalProgress
     var showTitle: Bool = true
+    var showText: Bool = true
     var dotSize: CGFloat = 10
     var spacing: CGFloat = 12
     
@@ -185,9 +154,11 @@ struct GoalProgressView: View {
             
             ProgressDotsView(totalDots: progress.totalDots, filledDots: progress.filledDots, dotSize: dotSize, spacing: spacing)
             
-            Text(progress.displayText)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            if showText {
+                Text(progress.displayText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 }

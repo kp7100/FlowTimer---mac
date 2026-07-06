@@ -2,7 +2,10 @@ import SwiftUI
 
 struct WindowControlsView: View {
     let isHoveringWindow: Bool
+    var showMiniButton: Bool = true
+    
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openWindow) private var openWindow
     
     @State private var isHoveringClose = false
     @State private var isHoveringMini = false
@@ -30,23 +33,25 @@ struct WindowControlsView: View {
             }
             
             // Mini Timer Button
-            Button(action: {
-                // Action: Switch to mini window (placeholder)
-                print("Switch to mini timer")
-            }) {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(isHoveringMini ? Color.accentColor : .primary.opacity(0.6))
-                    .frame(width: 14, height: 14)
-                    .background(
-                        Circle()
-                            .fill(isHoveringMini ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.08))
-                    )
-            }
-            .buttonStyle(.plain)
-            .onHover { hover in
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    isHoveringMini = hover
+            if showMiniButton {
+                Button(action: {
+                    dismiss()
+                    openWindow(id: "miniTimerWindow")
+                }) {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(isHoveringMini ? Color.accentColor : .primary.opacity(0.6))
+                        .frame(width: 14, height: 14)
+                        .background(
+                            Circle()
+                                .fill(isHoveringMini ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.08))
+                        )
+                }
+                .buttonStyle(.plain)
+                .onHover { hover in
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isHoveringMini = hover
+                    }
                 }
             }
         }
