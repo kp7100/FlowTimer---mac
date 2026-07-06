@@ -10,24 +10,34 @@ struct CompactTimerView: View {
                 // Row 1: Controls & Session Title
                 HStack(spacing: 8) {
                     WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false)
+                        .padding(.top, 2)
                     
-                    Text(timerManager.sessionTitle.isEmpty ? "Flow" : timerManager.sessionTitle)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    InlineEditableTitle(
+                        title: $timerManager.sessionTitle,
+                        fontSize: 14,
+                        fontWeight: .bold,
+                        alignment: .leading,
+                        frameAlignment: .leading
+                    )
                     
                     Spacer()
                 }
-                .padding(.top, 14)
+                .padding(.top, 6)
                 .padding(.horizontal, 14)
                 
                 // Row 2: Timer, Dots & Play Button
                 HStack(alignment: .center) {
                     VStack(alignment: .center, spacing: 4) {
-                        Text(timerManager.remainingTimeFormatted)
-                            .font(.system(size: 48, weight: .regular, design: .default))
-                            .monospacedDigit()
+                        ZStack(alignment: .leading) {
+                            Text("+00:00")
+                                .font(.system(size: 48, weight: .regular, design: .default))
+                                .monospacedDigit()
+                                .hidden()
+                            
+                            Text(timerManager.remainingTimeFormatted)
+                                .font(.system(size: 48, weight: .regular, design: .default))
+                                .monospacedDigit()
+                        }
                         
                         if SettingsManager.shared.settings.goalsEnabled {
                             GoalProgressView(progress: GoalManager.shared.progress, showTitle: false, showText: false, dotSize: 10, spacing: 8)
@@ -41,14 +51,14 @@ struct CompactTimerView: View {
                     PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .system(size: 18, weight: .semibold), isMiniTimer: true)
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .padding(.bottom, 16)
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
         }
-        .frame(width: 250)
+        .frame(width: 290)
         .background(Color(NSColor.windowBackgroundColor).ignoresSafeArea())
         .background(MiniWindowAccessorView())
         .onHover { hover in
