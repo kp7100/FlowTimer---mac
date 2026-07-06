@@ -181,11 +181,6 @@ final class HistoryManager {
         do {
             let data = try JSONEncoder().encode(sessions)
             try data.write(to: url, options: .atomic)
-            
-            // TESTING OPTIONS - DEBUG LOGGING
-            print("History saved to:", url.path)
-            print("Total records:", sessions.count)
-            // END TESTING OPTIONS
         } catch {
             print("Failed to save history: \(error)")
         }

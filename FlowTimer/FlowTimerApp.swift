@@ -6,34 +6,31 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    let timerManager = TimerManager()
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        WindowManager.shared.timerManager = timerManager
+        
+        // Spawn the main timer deterministically on launch
+        DispatchQueue.main.async {
+            WindowManager.shared.showMainTimer()
+        }
     }
 }
 
 @main
 struct FlowTimerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @State private var timerManager = TimerManager()
-    @Environment(\.openWindow) private var openWindow
     
     init() {
         NotificationManager.shared.requestAuthorization()
     }
     
     var body: some Scene {
-        Window("FlowTimer", id: "mainWindow") {
-            ContentView(timerManager: timerManager)
-                .onAppear {
-                    WindowManager.shared.timerManager = timerManager
-                }
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        
         Window("Settings", id: "settingsWindow") {
             TabView {
-                SettingsView(settingsManager: .shared, timerManager: timerManager)
+                SettingsView(settingsManager: .shared, timerManager: appDelegate.timerManager)
                     .tabItem {
                         Label("Settings", systemImage: "gear")
                     }
@@ -46,20 +43,13 @@ struct FlowTimerApp: App {
         }
         .windowResizability(.contentSize)
         
-        Window("Mini Timer", id: "miniTimerWindow") {
-            CompactTimerView(timerManager: timerManager)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        
         MenuBarExtra {
-            MenuBarPopoverView(timerManager: timerManager)
+            MenuBarPopoverView(timerManager: appDelegate.timerManager)
         } label: {
-            Text("\(timerManager.menuBarTitle)   [\(timerManager.remainingTimeFormatted)]")
+            Text("\(appDelegate.timerManager.menuBarTitle)   [\(appDelegate.timerManager.remainingTimeFormatted)]")
                 .monospacedDigit()
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
-                    openWindow(id: "mainWindow")
-                    WindowManager.shared.focusMainWindow()
+                    WindowManager.shared.showMainTimer()
                 }
         }
         .menuBarExtraStyle(.window)

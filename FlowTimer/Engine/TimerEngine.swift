@@ -1,5 +1,6 @@
 import Foundation
 
+@available(macOS 13.0, *)
 actor TimerEngine {
     private(set) var onTick: (@Sendable (Int) -> Void)?
     private(set) var onStateChange: (@Sendable (TimerState) -> Void)?
@@ -31,21 +32,29 @@ actor TimerEngine {
     }
     
     private(set) var direction: TimerDirection = .countdown
-    
-    private(set) var remainingSeconds: Int
     private(set) var totalSeconds: Int
     
-    var elapsedSeconds: Int {
-        totalSeconds - remainingSeconds
+    var remainingSeconds: Int {
+        return displayedSeconds
     }
     
+    var elapsedSeconds: Int {
+        return totalSeconds - remainingSeconds
+    }
+    
+    // Core Engine State
+    private let clock = SuspendingClock()
+    private var targetDuration: Duration
+    private var accumulatedDuration: Duration = .zero
+    private var runningSince: SuspendingClock.Instant?
+    
     private var task: Task<Void, Never>?
-    private let clock = ContinuousClock()
-    private let tickInterval = Duration.seconds(1)
+    private let tickInterval = Duration.milliseconds(100)
+    private var lastPublishedSecond: Int?
     
     init(durationInSeconds: Int) {
         self.totalSeconds = durationInSeconds
-        self.remainingSeconds = durationInSeconds
+        self.targetDuration = .seconds(durationInSeconds)
     }
     
     deinit {
@@ -60,49 +69,23 @@ actor TimerEngine {
     func setDuration(_ seconds: Int) {
         task?.cancel()
         task = nil
+        
         self.totalSeconds = seconds
-        self.remainingSeconds = seconds
+        self.targetDuration = .seconds(seconds)
+        self.accumulatedDuration = .zero
+        self.runningSince = nil
+        self.lastPublishedSecond = nil
         self.state = .idle
         
-        let currentSeconds = remainingSeconds
-        onTick?(currentSeconds)
+        publishTick()
     }
     
     func start() {
         guard state == .idle || state == .paused else { return }
         state = .running
-        
-        task?.cancel()
-        task = Task {
-            while !Task.isCancelled {
-                if direction == .countdown && remainingSeconds <= 0 {
-                    state = .completed
-                    onCompleted?()
-                    break
-                }
-                
-                do {
-                    try await clock.sleep(for: tickInterval)
-                    if Task.isCancelled { break }
-                    
-                    if direction == .countdown {
-                        remainingSeconds -= 1
-                    } else {
-                        remainingSeconds += 1 // count up mode
-                    }
-                    
-                    onTick?(remainingSeconds)
-                    
-                    if direction == .countdown && remainingSeconds <= 0 {
-                        state = .completed
-                        onCompleted?()
-                        break
-                    }
-                } catch {
-                    break
-                }
-            }
-        }
+        runningSince = clock.now
+        publishTick()
+        startLoop()
     }
     
     func resume() {
@@ -113,14 +96,92 @@ actor TimerEngine {
         guard state == .running else { return }
         task?.cancel()
         task = nil
+        
+        if let start = runningSince {
+            accumulatedDuration += clock.now - start
+        }
+        runningSince = nil
         state = .paused
+        publishTick() // Final sync
     }
     
     func reset() {
         task?.cancel()
         task = nil
-        remainingSeconds = totalSeconds
+        accumulatedDuration = .zero
+        runningSince = nil
+        lastPublishedSecond = nil
         state = .idle
-        onTick?(remainingSeconds)
+        publishTick()
+    }
+    
+    // MARK: - Core Logic
+    
+    var totalElapsed: Duration {
+        if let start = runningSince {
+            return accumulatedDuration + (clock.now - start)
+        }
+        return accumulatedDuration
+    }
+    
+    private var displayedSeconds: Int {
+        let elapsed = totalElapsed
+        let remaining = targetDuration - elapsed
+        
+        if direction == .countdown {
+            let s = remaining.components.seconds
+            let a = remaining.components.attoseconds
+            let doubleRemaining = Double(s) + Double(a) / 1e18
+            return Int(ceil(doubleRemaining))
+        } else {
+            let s = elapsed.components.seconds
+            let a = elapsed.components.attoseconds
+            let doubleElapsed = Double(s) + Double(a) / 1e18
+            return Int(floor(doubleElapsed))
+        }
+    }
+    
+    private func publishTick() {
+        let current = displayedSeconds
+        
+        if direction == .countdown && totalElapsed >= targetDuration {
+            if lastPublishedSecond != 0 {
+                lastPublishedSecond = 0
+                onTick?(0)
+            }
+        } else {
+            if current != lastPublishedSecond {
+                lastPublishedSecond = current
+                onTick?(current)
+            }
+        }
+    }
+    
+    private func startLoop() {
+        task?.cancel()
+        task = Task {
+            while !Task.isCancelled {
+                // Check completion BEFORE sleeping
+                if direction == .countdown && totalElapsed >= targetDuration {
+                    state = .completed
+                    
+                    if lastPublishedSecond != 0 {
+                        lastPublishedSecond = 0
+                        onTick?(0)
+                    }
+                    
+                    onCompleted?()
+                    break
+                }
+                
+                publishTick()
+                
+                do {
+                    try await clock.sleep(for: tickInterval)
+                } catch {
+                    break
+                }
+            }
+        }
     }
 }

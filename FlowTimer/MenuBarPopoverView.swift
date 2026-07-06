@@ -75,8 +75,7 @@ struct MenuBarPopoverView: View {
                 }
                 
                 Button(action: {
-                    openWindow(id: "mainWindow")
-                    WindowManager.shared.focusMainWindow()
+                    WindowManager.shared.showMainTimer()
                 }) {
                     Text("Open Main Window")
                         .frame(maxWidth: .infinity, alignment: .leading)

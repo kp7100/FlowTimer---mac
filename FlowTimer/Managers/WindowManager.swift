@@ -7,12 +7,8 @@ import Observation
 final class WindowManager {
     static let shared = WindowManager()
     
-    weak var mainWindow: NSWindow? {
-        didSet {
-            setupWindow()
-        }
-    }
-    var miniPanel: MiniTimerPanel?
+    var mainPanel: FlowPanel?
+    var miniPanel: FlowPanel?
     var timerManager: TimerManager?
     
     private init() {
@@ -22,7 +18,7 @@ final class WindowManager {
         NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: nil, queue: .main) { [weak self] notification in
             guard let self = self, let window = notification.object as? NSWindow else { return }
             
-            if window == self.mainWindow {
+            if window == self.mainPanel {
                 let frame = window.frame
                 UserDefaults.standard.set(frame.origin.x, forKey: "windowX")
                 UserDefaults.standard.set(frame.origin.y, forKey: "windowY")
@@ -34,16 +30,50 @@ final class WindowManager {
         }
     }
     
-    private func setupWindow() {
-        guard let window = mainWindow else { return }
-        
-        window.level = .floating
-        
-        let x = UserDefaults.standard.object(forKey: "windowX") as? CGFloat
-        let y = UserDefaults.standard.object(forKey: "windowY") as? CGFloat
-        if let x = x, let y = y {
-            window.setFrameOrigin(NSPoint(x: x, y: y))
+    func showMainTimer() {
+        if let panel = mainPanel {
+            panel.makeKeyAndOrderFront(nil)
+            return
         }
+        
+        guard let timerManager = timerManager else { return }
+        
+        let panel = makeHostingPanel(
+            rootView: ContentView(timerManager: timerManager),
+            savedXKey: "windowX",
+            savedYKey: "windowY"
+        )
+        
+        self.mainPanel = panel
+        panel.makeKeyAndOrderFront(nil)
+    }
+    
+    func hideMainTimer() {
+        mainPanel?.orderOut(nil)
+    }
+    
+    private func makeHostingPanel<Content: View>(rootView: Content, savedXKey: String, savedYKey: String) -> FlowPanel {
+        let panel = FlowPanel(
+            contentRect: .zero,
+            styleMask: [.nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isReleasedWhenClosed = false
+        
+        let hostingController = NSHostingController(rootView: rootView)
+        hostingController.sizingOptions = .intrinsicContentSize
+        panel.contentViewController = hostingController
+        
+        let x = UserDefaults.standard.object(forKey: savedXKey) as? CGFloat
+        let y = UserDefaults.standard.object(forKey: savedYKey) as? CGFloat
+        if let x = x, let y = y {
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        } else {
+            panel.center()
+        }
+        
+        return panel
     }
     
     func showMiniTimer() {
@@ -54,31 +84,11 @@ final class WindowManager {
         
         guard let timerManager = timerManager else { return }
         
-        let panel = MiniTimerPanel(
-            contentRect: .zero,
-            styleMask: [.nonactivatingPanel], // Borderless to avoid title bar geometry
-            backing: .buffered,
-            defer: false
+        let panel = makeHostingPanel(
+            rootView: CompactTimerView(timerManager: timerManager),
+            savedXKey: "miniWindowX",
+            savedYKey: "miniWindowY"
         )
-        
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.isMovableByWindowBackground = true
-        panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        
-        let hostingController = NSHostingController(rootView: CompactTimerView(timerManager: timerManager))
-        hostingController.sizingOptions = .intrinsicContentSize
-        panel.contentViewController = hostingController
-        
-        let x = UserDefaults.standard.object(forKey: "miniWindowX") as? CGFloat
-        let y = UserDefaults.standard.object(forKey: "miniWindowY") as? CGFloat
-        if let x = x, let y = y {
-            panel.setFrameOrigin(NSPoint(x: x, y: y))
-        } else {
-            panel.center()
-        }
         
         self.miniPanel = panel
         panel.makeKeyAndOrderFront(nil)
@@ -86,12 +96,6 @@ final class WindowManager {
     
     func hideMiniTimer() {
         miniPanel?.orderOut(nil)
-    }
-
-    
-    func focusMainWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        mainWindow?.makeKeyAndOrderFront(nil)
     }
     
     func focusSettingsWindow() {
@@ -102,7 +106,17 @@ final class WindowManager {
     }
 }
 
-class MiniTimerPanel: NSPanel {
+class FlowPanel: NSPanel {
+    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+        super.init(contentRect: contentRect, styleMask: [.nonactivatingPanel], backing: .buffered, defer: false)
+        self.isOpaque = false
+        self.backgroundColor = .clear
+        self.hasShadow = true
+        self.isMovableByWindowBackground = true
+        self.level = .floating
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    }
+    
     override var canBecomeKey: Bool {
         return true
     }

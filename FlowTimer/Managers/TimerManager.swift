@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import Observation
 
 @MainActor
@@ -50,6 +51,10 @@ final class TimerManager {
         self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
         
         setupEngine()
+        
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.pause()
+        }
     }
     
     func settingsDidChange() {
