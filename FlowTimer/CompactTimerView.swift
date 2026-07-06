@@ -59,7 +59,9 @@ struct CompactTimerView: View {
             }
         }
         .frame(width: 290)
-        .background(Color(NSColor.windowBackgroundColor).ignoresSafeArea())
+        .fixedSize(horizontal: false, vertical: true)
+        .ignoresSafeArea()
+        .background(Color(NSColor.windowBackgroundColor))
         .background(MiniWindowAccessorView())
         .onHover { hover in
             isHoveringWindow = hover
@@ -84,6 +86,19 @@ struct MiniWindowAccessorView: NSViewRepresentable {
                 window.standardWindowButton(.closeButton)?.isHidden = true
                 window.standardWindowButton(.miniaturizeButton)?.isHidden = true
                 window.standardWindowButton(.zoomButton)?.isHidden = true
+                
+                window.minSize = NSSize(width: 250, height: 50)
+                
+                print("--- Mini Timer Window Debug ---")
+                print("window.frame.height: \(window.frame.height)")
+                print("window.minSize.height: \(window.minSize.height)")
+                print("window.contentLayoutRect.height: \(window.contentLayoutRect.height)")
+                print("window.styleMask.rawValue: \(window.styleMask.rawValue)")
+                print("has .titled: \(window.styleMask.contains(.titled))")
+                print("has .fullSizeContentView: \(window.styleMask.contains(.fullSizeContentView))")
+                print("titlebarAppearsTransparent: \(window.titlebarAppearsTransparent)")
+                print("titleVisibility hidden: \(window.titleVisibility == .hidden)")
+                print("-------------------------------")
             }
         }
     }
