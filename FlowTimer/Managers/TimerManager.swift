@@ -23,8 +23,7 @@ final class TimerManager {
         return tag.name
     }
     
-    var activeTag: String? { currentPhaseTagName }
-    private var currentPhaseTagName: String?
+    var activeTag: String? { currentTag }
     
     private var currentPhaseStartDate: Date?
     private var currentPhaseDuration: Int
@@ -49,13 +48,6 @@ final class TimerManager {
         self.currentPhaseDuration = settingsManager.settings.workDuration
         self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
-        
-        let initialTagId = settingsManager.settings.selectedTagId
-        if let id = initialTagId, let tag = TagManager.shared.tags.first(where: { $0.id == id }) {
-            self.currentPhaseTagName = tag.name
-        } else {
-            self.currentPhaseTagName = nil
-        }
         
         setupEngine()
     }
@@ -147,7 +139,6 @@ final class TimerManager {
             } else {
                 currentSession = 1
             }
-            currentPhaseTagName = self.currentTag
             currentPhaseDuration = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
@@ -180,7 +171,7 @@ final class TimerManager {
                 startDate: startDate,
                 endDate: Date(),
                 duration: TimeInterval(currentPhaseDuration),
-                tag: (phase == .work || phase == .flowExtension) ? currentPhaseTagName : nil
+                tag: (phase == .work || phase == .flowExtension) ? currentTag : nil
             )
             HistoryManager.shared.addSession(record)
         }
@@ -214,7 +205,7 @@ final class TimerManager {
                     startDate: startDate,
                     endDate: Date(),
                     duration: TimeInterval(currentPhaseDuration),
-                    tag: currentPhaseTagName
+                    tag: currentTag
                 )
                 HistoryManager.shared.addSession(record)
             }
@@ -262,7 +253,6 @@ final class TimerManager {
         Task {
             currentSession = 1
             currentPhaseStartDate = nil
-            currentPhaseTagName = self.currentTag
             currentPhaseDuration = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
