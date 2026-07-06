@@ -24,6 +24,9 @@ struct FlowTimerApp: App {
     var body: some Scene {
         Window("FlowTimer", id: "mainWindow") {
             ContentView(timerManager: timerManager)
+                .onAppear {
+                    WindowManager.shared.timerManager = timerManager
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

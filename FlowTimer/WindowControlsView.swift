@@ -3,6 +3,7 @@ import SwiftUI
 struct WindowControlsView: View {
     let isHoveringWindow: Bool
     var showMiniButton: Bool = true
+    var onClose: (() -> Void)? = nil
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openWindow) private var openWindow
@@ -14,7 +15,11 @@ struct WindowControlsView: View {
         HStack(spacing: 8) {
             // Close / Hide Button
             Button(action: {
-                dismiss()
+                if let onClose = onClose {
+                    onClose()
+                } else {
+                    dismiss()
+                }
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 8, weight: .bold))
@@ -35,8 +40,12 @@ struct WindowControlsView: View {
             // Mini Timer Button
             if showMiniButton {
                 Button(action: {
-                    dismiss()
-                    openWindow(id: "miniTimerWindow")
+                    if let onClose = onClose {
+                        onClose()
+                    } else {
+                        dismiss()
+                    }
+                    WindowManager.shared.showMiniTimer()
                 }) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .font(.system(size: 8, weight: .bold))

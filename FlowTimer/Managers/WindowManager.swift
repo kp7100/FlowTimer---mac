@@ -12,12 +12,8 @@ final class WindowManager {
             setupWindow()
         }
     }
-    
-    weak var miniWindow: NSWindow? {
-        didSet {
-            setupMiniWindow()
-        }
-    }
+    var miniPanel: MiniTimerPanel?
+    var timerManager: TimerManager?
     
     private init() {
         UserDefaults.standard.removeObject(forKey: "alwaysOnTop")
@@ -30,7 +26,7 @@ final class WindowManager {
                 let frame = window.frame
                 UserDefaults.standard.set(frame.origin.x, forKey: "windowX")
                 UserDefaults.standard.set(frame.origin.y, forKey: "windowY")
-            } else if window == self.miniWindow {
+            } else if window == self.miniPanel {
                 let frame = window.frame
                 UserDefaults.standard.set(frame.origin.x, forKey: "miniWindowX")
                 UserDefaults.standard.set(frame.origin.y, forKey: "miniWindowY")
@@ -50,17 +46,48 @@ final class WindowManager {
         }
     }
     
-    private func setupMiniWindow() {
-        guard let window = miniWindow else { return }
+    func showMiniTimer() {
+        if let panel = miniPanel {
+            panel.makeKeyAndOrderFront(nil)
+            return
+        }
         
-        window.level = .floating
+        guard let timerManager = timerManager else { return }
+        
+        let panel = MiniTimerPanel(
+            contentRect: .zero,
+            styleMask: [.nonactivatingPanel], // Borderless to avoid title bar geometry
+            backing: .buffered,
+            defer: false
+        )
+        
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.isMovableByWindowBackground = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        
+        let hostingController = NSHostingController(rootView: CompactTimerView(timerManager: timerManager))
+        hostingController.sizingOptions = .intrinsicContentSize
+        panel.contentViewController = hostingController
         
         let x = UserDefaults.standard.object(forKey: "miniWindowX") as? CGFloat
         let y = UserDefaults.standard.object(forKey: "miniWindowY") as? CGFloat
         if let x = x, let y = y {
-            window.setFrameOrigin(NSPoint(x: x, y: y))
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        } else {
+            panel.center()
         }
+        
+        self.miniPanel = panel
+        panel.makeKeyAndOrderFront(nil)
     }
+    
+    func hideMiniTimer() {
+        miniPanel?.orderOut(nil)
+    }
+
     
     func focusMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
@@ -72,5 +99,11 @@ final class WindowManager {
         if let settingsWindow = NSApp.windows.first(where: { $0.title == "Settings" }) {
             settingsWindow.makeKeyAndOrderFront(nil)
         }
+    }
+}
+
+class MiniTimerPanel: NSPanel {
+    override var canBecomeKey: Bool {
+        return true
     }
 }

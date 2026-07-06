@@ -9,7 +9,9 @@ struct CompactTimerView: View {
             VStack(spacing: 8) {
                 // Row 1: Controls & Session Title
                 HStack(spacing: 8) {
-                    WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false)
+                    WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, onClose: {
+                        WindowManager.shared.hideMiniTimer()
+                    })
                         .padding(.top, 2)
                     
                     InlineEditableTitle(
@@ -61,45 +63,13 @@ struct CompactTimerView: View {
         .frame(width: 290)
         .fixedSize(horizontal: false, vertical: true)
         .ignoresSafeArea()
-        .background(Color(NSColor.windowBackgroundColor))
-        .background(MiniWindowAccessorView())
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(NSColor.windowBackgroundColor))
+        )
         .onHover { hover in
             isHoveringWindow = hover
         }
     }
 }
 
-struct MiniWindowAccessorView: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSView, context: Context) {
-        Task { @MainActor in
-            if let window = nsView.window, WindowManager.shared.miniWindow != window {
-                WindowManager.shared.miniWindow = window
-                window.isOpaque = false
-                window.backgroundColor = .clear
-                window.titlebarAppearsTransparent = true
-                window.titleVisibility = .hidden
-                window.standardWindowButton(.closeButton)?.isHidden = true
-                window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-                window.standardWindowButton(.zoomButton)?.isHidden = true
-                
-                window.minSize = NSSize(width: 250, height: 50)
-                
-                print("--- Mini Timer Window Debug ---")
-                print("window.frame.height: \(window.frame.height)")
-                print("window.minSize.height: \(window.minSize.height)")
-                print("window.contentLayoutRect.height: \(window.contentLayoutRect.height)")
-                print("window.styleMask.rawValue: \(window.styleMask.rawValue)")
-                print("has .titled: \(window.styleMask.contains(.titled))")
-                print("has .fullSizeContentView: \(window.styleMask.contains(.fullSizeContentView))")
-                print("titlebarAppearsTransparent: \(window.titlebarAppearsTransparent)")
-                print("titleVisibility hidden: \(window.titleVisibility == .hidden)")
-                print("-------------------------------")
-            }
-        }
-    }
-}
