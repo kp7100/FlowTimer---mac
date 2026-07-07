@@ -6,31 +6,25 @@ struct CompactTimerView: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            VStack(spacing: 8) {
-                // Row 1: Controls & Session Title
-                HStack(spacing: 8) {
-                    WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, onClose: {
-                        WindowManager.shared.hideMiniTimer()
-                    })
-                        .padding(.top, 2)
-                    
-                    InlineEditableTitle(
-                        title: $timerManager.sessionTitle,
-                        fontSize: 14,
-                        fontWeight: .bold,
-                        alignment: .leading,
-                        frameAlignment: .leading
-                    )
-                    
-                    Spacer()
-                }
-                .padding(.top, 6)
-                .padding(.horizontal, 14)
+            // Core centered layout
+            HStack(spacing: 0) {
+                // Flexible left margin to optically center the timer block
+                Spacer()
                 
-                // Row 2: Timer, Dots & Play Button
-                HStack(alignment: .center) {
-                    VStack(alignment: .center, spacing: 4) {
-                        ZStack(alignment: .leading) {
+                // Unified Hero Block
+                VStack(alignment: .center, spacing: 0) {
+                    VStack(alignment: .leading, spacing: -4) {
+                        InlineEditableTitle(
+                            title: $timerManager.sessionTitle,
+                            fontSize: 14,
+                            fontWeight: .bold,
+                            alignment: .leading,
+                            frameAlignment: .leading
+                        )
+                        .padding(.leading, 22) // Shift text right and prevent background from bleeding under Close button
+                        .offset(y: -4) // Optically align baseline
+                        
+                        ZStack(alignment: .center) {
                             Text("+00:00")
                                 .font(.system(size: 48, weight: .regular, design: .default))
                                 .monospacedDigit()
@@ -40,28 +34,40 @@ struct CompactTimerView: View {
                                 .font(.system(size: 48, weight: .regular, design: .default))
                                 .monospacedDigit()
                         }
-                        
-                        if SettingsManager.shared.settings.goalsEnabled {
-                            GoalProgressView(progress: GoalManager.shared.progress, showTitle: false, showText: false, dotSize: 10, spacing: 8)
-                        } else {
-                            SessionProgressView(currentSession: timerManager.currentSession, totalSessions: timerManager.totalSessions, dotSize: 10, spacing: 8)
-                        }
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                     
-                    Spacer()
-                    
-                    PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .system(size: 18, weight: .semibold), isMiniTimer: true)
+                    // Slightly tighter dot spacing allows 10 sessions to fit safely
+                    // Progress
+                    SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 6)
+                        .padding(.top, 4)
+                        .offset(x: 3) // Optically center beneath the timer's bounding box
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                
+                Spacer()
+                
+                // Play button safely anchored to the right margin
+                PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .system(size: 18, weight: .semibold), isMiniTimer: true)
+                    .padding(.trailing, 16)
+                    .offset(y: 5) // Optically center to the Timer text rather than the VStack bounds
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
+            
+            // Absolute top-left corner for window controls (margins)
+            // Rendered last in ZStack so it receives clicks above the HStack's onTapGesture
+            WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, onClose: {
+                WindowManager.shared.hideMiniTimer()
+            })
+            .padding(.top, 12)
+            .padding(.leading, 12)
         }
-        .frame(width: 290)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 220, height: 112)
+        .fixedSize()
         .ignoresSafeArea()
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)

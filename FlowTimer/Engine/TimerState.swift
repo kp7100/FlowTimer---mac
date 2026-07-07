@@ -1,6 +1,6 @@
 import Foundation
 
-enum TimerState: Sendable {
+enum TimerState: String, Sendable, Codable {
     case idle
     case running
     case paused

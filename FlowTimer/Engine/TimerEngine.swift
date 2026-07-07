@@ -1,5 +1,17 @@
 import Foundation
 
+func traceLog_engine(_ msg: String) {
+    let url = URL(fileURLWithPath: "/tmp/flowtimer_trace.log")
+    let txt = "\(msg)\n"
+    if let handle = try? FileHandle(forWritingTo: url) {
+        handle.seekToEndOfFile()
+        handle.write(txt.data(using: .utf8)!)
+        handle.closeFile()
+    } else {
+        try? txt.write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
 @available(macOS 13.0, *)
 actor TimerEngine {
     private(set) var onTick: (@Sendable (Int) -> Void)?
@@ -112,6 +124,48 @@ actor TimerEngine {
         runningSince = nil
         lastPublishedSecond = nil
         state = .idle
+        publishTick()
+    }
+    
+    // MARK: - Snapshot & Restore
+    
+    func snapshot() -> EngineSnapshot {
+        let elapsed = totalElapsed
+        let elapsedSeconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        
+        return EngineSnapshot(
+            state: self.state,
+            phase: self.phase,
+            direction: self.direction,
+            totalSeconds: self.totalSeconds,
+            accumulatedSeconds: elapsedSeconds,
+            savedAt: Date()
+        )
+    }
+    
+    func restore(from snapshot: EngineSnapshot) {
+        traceLog_engine("[TRACE] TimerEngine.restore() called with state: \(snapshot.state), phase: \(snapshot.phase)")
+        task?.cancel()
+        task = nil
+        
+        self.state = (snapshot.state == .running) ? .paused : snapshot.state
+        self.phase = snapshot.phase
+        self.direction = snapshot.direction
+        self.totalSeconds = snapshot.totalSeconds
+        self.targetDuration = .seconds(snapshot.totalSeconds)
+        
+        self.accumulatedDuration = .seconds(snapshot.accumulatedSeconds)
+        self.lastPublishedSecond = nil
+        
+        // Since we force state to .paused if it was running, startLoop() will never be called here, but we keep it for completeness if state == .running is ever used.
+        if self.state == .running {
+            startLoop()
+        }
+    }
+    
+    func publishCurrentState() {
+        onStateChange?(state)
+        onPhaseChange?(phase)
         publishTick()
     }
     

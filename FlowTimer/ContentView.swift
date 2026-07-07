@@ -20,13 +20,19 @@ struct ContentView: View {
                     WindowManager.shared.hideMainTimer()
                 })
                 
-                Text("Session \(timerManager.currentSession)/\(timerManager.totalSessions)")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(.secondary)
+                if SettingsManager.shared.settings.goalsEnabled {
+                    let progress = GoalManager.shared.progress
+                    Text(progress.displayText)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(.secondary)
+                        .opacity(isHoveringWindow ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.18), value: isHoveringWindow)
+                }
                 
                 Spacer()
                 
-                if let activeTag = timerManager.activeTag, (timerManager.phase == .work || timerManager.phase == .flowExtension) {
+                if timerManager.phase == .work || timerManager.phase == .flowExtension {
+                    let hasTag = settingsManager.settings.selectedTagId != nil
                     Menu {
                         Picker("Selected Tag", selection: $settingsManager.settings.selectedTagId) {
                             Text("None").tag(UUID?.none)
@@ -36,23 +42,21 @@ struct ContentView: View {
                             }
                         }
                     } label: {
-                        Text(activeTag)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.accentColor.opacity(0.15))
-                            .foregroundColor(Color.accentColor)
-                            .clipShape(Capsule())
+                        Image(systemName: hasTag ? "tag.fill" : "tag")
+                            .font(.system(size: 14))
+                            .foregroundColor(hasTag ? Color.accentColor : .secondary)
+                            .contentShape(Rectangle())
                     }
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
                     .fixedSize()
+                    .opacity(isHoveringWindow ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.18), value: isHoveringWindow)
                 }
             }
             .padding(.leading, 12)
             .padding(.trailing, 24)
-            .padding(.top, 24)
+            .padding(.top, 16)
             
             Spacer()
             
@@ -66,11 +70,7 @@ struct ContentView: View {
                 .padding(.vertical, -4)
             
             // Progress Indicators
-            if SettingsManager.shared.settings.goalsEnabled {
-                GoalProgressView(progress: GoalManager.shared.progress)
-            } else {
-                SessionProgressView(currentSession: timerManager.currentSession, totalSessions: timerManager.totalSessions)
-            }
+            SessionProgressView(timerManager: timerManager)
             
             Spacer()
             
@@ -134,6 +134,9 @@ struct ContentView: View {
         .onHover { hover in
             isHoveringWindow = hover
         }
+        .onExitCommand {
+            WindowManager.shared.hideMainTimer()
+        }
     }
 }
 
@@ -163,14 +166,71 @@ struct GoalProgressView: View {
     }
 }
 
+enum DotState {
+    case empty
+    case half
+    case full
+}
+
+struct SessionDotView: View {
+    let state: DotState
+    let size: CGFloat
+    
+    var body: some View {
+        ZStack {
+            // Background (empty state)
+            Circle()
+                .fill(Color.secondary.opacity(0.3))
+                .frame(width: size, height: size)
+            
+            if state == .full {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: size, height: size)
+            } else if state == .half {
+                // Left half filled
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: size, height: size)
+                    .mask(
+                        HStack(spacing: 0) {
+                            Rectangle().frame(width: size / 2, height: size)
+                            Color.clear.frame(width: size / 2, height: size)
+                        }
+                    )
+            }
+        }
+    }
+}
+
 struct SessionProgressView: View {
-    let currentSession: Int
-    let totalSessions: Int
+    var timerManager: TimerManager
     var dotSize: CGFloat = 10
     var spacing: CGFloat = 12
     
+    private func dotState(for index: Int) -> DotState {
+        if timerManager.phase == .work {
+            if index < timerManager.currentSession - 1 { return .full }
+            if index == timerManager.currentSession - 1 { 
+                return timerManager.state == .idle ? .empty : .half 
+            }
+            return .empty
+        } else {
+            if index <= timerManager.currentSession - 1 { return .full }
+            return .empty
+        }
+    }
+    
     var body: some View {
-        ProgressDotsView(totalDots: totalSessions, filledDots: currentSession, activeDotIndex: currentSession - 1, dotSize: dotSize, spacing: spacing)
+        HStack(spacing: spacing) {
+            let total = max(1, timerManager.totalSessions)
+            ForEach(0..<total, id: \.self) { index in
+                SessionDotView(state: dotState(for: index), size: dotSize)
+                    .scaleEffect(index == timerManager.currentSession - 1 ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: timerManager.currentSession)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: timerManager.phase)
+            }
+        }
     }
 }
 

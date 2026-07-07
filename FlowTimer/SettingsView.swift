@@ -7,11 +7,12 @@ struct SettingsView: View {
     let workOptions = [15, 20, 25, 30, 45, 50, 60, 90]
     let shortBreakOptions = [5, 10]
     let longBreakOptions = [15, 20, 30]
-    let sessionOptions = [2, 3, 4, 5]
+    let sessionOptions = Array(2...10)
     @State private var showingManageTags = false
     
     var body: some View {
-        Form {
+        ScrollView {
+            Form {
             Section("Daily Goal") {
                 Toggle("Enable Daily Goals", isOn: $settingsManager.settings.goalsEnabled)
                 
@@ -94,9 +95,9 @@ struct SettingsView: View {
                 Toggle("Start Breaks Automatically", isOn: $settingsManager.settings.autoStartBreaks)
                 Toggle("Start Focus Sessions Automatically", isOn: $settingsManager.settings.autoStartWork)
             }
+            }
+            .padding()
         }
-        .padding()
-        .frame(width: 400, height: 580)
         .sheet(isPresented: $showingManageTags) {
             ManageTagsView()
         }

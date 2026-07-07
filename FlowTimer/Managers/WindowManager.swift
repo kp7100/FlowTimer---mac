@@ -9,25 +9,15 @@ final class WindowManager {
     
     var mainPanel: FlowPanel?
     var miniPanel: FlowPanel?
+    var settingsWindow: NSWindow?
+    @ObservationIgnored private var _renameSessionPanelController: RenameSessionPanelController?
     var timerManager: TimerManager?
+    
+    let framePersistence = WindowFramePersistence()
     
     private init() {
         UserDefaults.standard.removeObject(forKey: "alwaysOnTop")
         UserDefaults.standard.removeObject(forKey: "restorePosition")
-        
-        NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: nil, queue: .main) { [weak self] notification in
-            guard let self = self, let window = notification.object as? NSWindow else { return }
-            
-            if window == self.mainPanel {
-                let frame = window.frame
-                UserDefaults.standard.set(frame.origin.x, forKey: "windowX")
-                UserDefaults.standard.set(frame.origin.y, forKey: "windowY")
-            } else if window == self.miniPanel {
-                let frame = window.frame
-                UserDefaults.standard.set(frame.origin.x, forKey: "miniWindowX")
-                UserDefaults.standard.set(frame.origin.y, forKey: "miniWindowY")
-            }
-        }
     }
     
     func showMainTimer() {
@@ -40,8 +30,7 @@ final class WindowManager {
         
         let panel = makeHostingPanel(
             rootView: ContentView(timerManager: timerManager),
-            savedXKey: "windowX",
-            savedYKey: "windowY"
+            autosaveName: "FlowTimer.MainTimer.Frame"
         )
         
         self.mainPanel = panel
@@ -52,7 +41,16 @@ final class WindowManager {
         mainPanel?.orderOut(nil)
     }
     
-    private func makeHostingPanel<Content: View>(rootView: Content, savedXKey: String, savedYKey: String) -> FlowPanel {
+    func toggleMainTimer() {
+        if mainPanel?.isVisible == true {
+            hideMainTimer()
+        } else {
+            showMainTimer()
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
+    private func makeHostingPanel<Content: View>(rootView: Content, autosaveName: String) -> FlowPanel {
         let panel = FlowPanel(
             contentRect: .zero,
             styleMask: [.nonactivatingPanel],
@@ -65,13 +63,7 @@ final class WindowManager {
         hostingController.sizingOptions = .intrinsicContentSize
         panel.contentViewController = hostingController
         
-        let x = UserDefaults.standard.object(forKey: savedXKey) as? CGFloat
-        let y = UserDefaults.standard.object(forKey: savedYKey) as? CGFloat
-        if let x = x, let y = y {
-            panel.setFrameOrigin(NSPoint(x: x, y: y))
-        } else {
-            panel.center()
-        }
+        framePersistence.register(window: panel, persistenceKey: autosaveName)
         
         return panel
     }
@@ -86,8 +78,7 @@ final class WindowManager {
         
         let panel = makeHostingPanel(
             rootView: CompactTimerView(timerManager: timerManager),
-            savedXKey: "miniWindowX",
-            savedYKey: "miniWindowY"
+            autosaveName: "FlowTimer.MiniTimer.Frame"
         )
         
         self.miniPanel = panel
@@ -98,14 +89,92 @@ final class WindowManager {
         miniPanel?.orderOut(nil)
     }
     
-    func focusSettingsWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        if let settingsWindow = NSApp.windows.first(where: { $0.title == "Settings" }) {
-            settingsWindow.makeKeyAndOrderFront(nil)
+    func toggleMiniTimer() {
+        if miniPanel?.isVisible == true {
+            hideMiniTimer()
+        } else {
+            showMiniTimer()
         }
     }
+    
+    func showSettingsWindow() {
+        if let window = settingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        guard let timerManager = timerManager else { return }
+        
+        let settingsView = TabView {
+            SettingsView(settingsManager: .shared, timerManager: timerManager)
+                .tabItem { Label("Settings", systemImage: "gear") }
+            
+            StatisticsView()
+                .tabItem { Label("Statistics", systemImage: "chart.bar.fill") }
+        }
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 450, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Settings"
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 400, height: 400)
+        window.center()
+        
+        let hostingController = NSHostingController(rootView: settingsView)
+        window.contentViewController = hostingController
+        
+        framePersistence.register(window: window, persistenceKey: "FlowTimer.Settings.Frame")
+        
+        var token: NSObjectProtocol?
+        token = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.settingsWindow = nil
+            if let t = token {
+                NotificationCenter.default.removeObserver(t)
+            }
+        }
+        
+        self.settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    func hideSettingsWindow() {
+        settingsWindow?.orderOut(nil)
+    }
+    
+    func toggleSettingsWindow() {
+        if settingsWindow?.isVisible == true {
+            hideSettingsWindow()
+        } else {
+            showSettingsWindow()
+        }
+    }
+    
+    private func getRenamePanelController() -> RenameSessionPanelController? {
+        guard let timerManager = timerManager else { return nil }
+        
+        if let controller = _renameSessionPanelController {
+            return controller
+        }
+        
+        let controller = RenameSessionPanelController(timerManager: timerManager)
+        _renameSessionPanelController = controller
+        return controller
+    }
+    
+    func showRenameSessionPanel() {
+        getRenamePanelController()?.show()
+    }
 }
-
 class FlowPanel: NSPanel {
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: [.nonactivatingPanel], backing: .buffered, defer: false)

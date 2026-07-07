@@ -5,12 +5,20 @@
 
 import SwiftUI
 
+let useNativeStatusItem = true
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     let timerManager = TimerManager()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         WindowManager.shared.timerManager = timerManager
+        
+        if useNativeStatusItem {
+            StatusBarManager.shared.setup(timerManager: timerManager)
+        }
+        
+        ShortcutDispatcher.shared.start()
         
         // Spawn the main timer deterministically on launch
         DispatchQueue.main.async {
@@ -28,22 +36,7 @@ struct FlowTimerApp: App {
     }
     
     var body: some Scene {
-        Window("Settings", id: "settingsWindow") {
-            TabView {
-                SettingsView(settingsManager: .shared, timerManager: appDelegate.timerManager)
-                    .tabItem {
-                        Label("Settings", systemImage: "gear")
-                    }
-                
-                StatisticsView()
-                    .tabItem {
-                        Label("Statistics", systemImage: "chart.bar.fill")
-                    }
-            }
-        }
-        .windowResizability(.contentSize)
-        
-        MenuBarExtra {
+        MenuBarExtra(isInserted: .constant(!useNativeStatusItem)) {
             MenuBarPopoverView(timerManager: appDelegate.timerManager)
         } label: {
             Text("\(appDelegate.timerManager.menuBarTitle)   [\(appDelegate.timerManager.remainingTimeFormatted)]")

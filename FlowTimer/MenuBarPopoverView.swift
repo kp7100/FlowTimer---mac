@@ -2,125 +2,142 @@ import SwiftUI
 
 struct MenuBarPopoverView: View {
     @Bindable var timerManager: TimerManager
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Title and Session Info
-            VStack(spacing: 4) {
-                Text(timerManager.sessionTitle)
-                    .font(.headline)
-                    .lineLimit(1)
+        VStack(spacing: 8) {
+            // Top Bar
+            HStack(spacing: 12) {
+                WindowControlsView(isHoveringWindow: true, showCloseButton: false, onClose: {
+                    dismiss()
+                })
                 
-                Text("Session \(timerManager.currentSession) of \(timerManager.totalSessions)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                if SettingsManager.shared.settings.goalsEnabled {
+                    let progress = GoalManager.shared.progress
+                    Text(progress.displayText)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
             }
+            .padding(.horizontal, 20)
+            
+            Spacer().frame(height: 8)
+            
+            // Session Title
+            InlineEditableTitle(
+                title: $timerManager.sessionTitle,
+                fontSize: 22,
+                fontWeight: .medium,
+                alignment: .center,
+                frameAlignment: .center
+            )
+            .padding(.horizontal, 20)
             
             // Timer Display
             Text(timerManager.remainingTimeFormatted)
-                .font(.system(size: 48, weight: .light, design: .default))
+                .font(.system(size: 72, weight: .regular, design: .default))
                 .monospacedDigit()
+                .padding(.vertical, -4)
             
-            // Progress Indicators
-            if SettingsManager.shared.settings.goalsEnabled {
-                GoalProgressView(progress: GoalManager.shared.progress, showTitle: false, dotSize: 8, spacing: 8)
-            } else {
-                SessionProgressView(currentSession: timerManager.currentSession, totalSessions: timerManager.totalSessions, dotSize: 8, spacing: 8)
-            }
-            
-            // Phase Text
-            Text(phaseText)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            Divider()
+            // Session Progress
+            SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 12)
+                .padding(.bottom, 12)
             
             // Controls
-            VStack(spacing: 0) {
-                if timerManager.phase == .flowExtension {
+            if timerManager.phase == .flowExtension {
+                HStack(spacing: 16) {
+                    PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .title2)
+                    
                     Button(action: {
-                        timerManager.takeBreak()
+                        withAnimation {
+                            timerManager.takeBreak()
+                        }
                     }) {
                         Text("Take Break")
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .frame(height: 44)
+                            .background(Color.accentColor)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .padding(.vertical, 4)
                 }
-                
-                Button(action: {
-                    if timerManager.isRunning {
-                        timerManager.pause()
-                    } else {
-                        timerManager.start()
-                    }
-                }) {
-                    Text(timerManager.isRunning ? "Pause" : "Play")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
-                
-                if timerManager.phase != .flowExtension {
-                    Button(action: {
-                        timerManager.skipCurrentPhase()
-                    }) {
-                        Text("Skip")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.vertical, 4)
-                }
-                
-                Button(action: {
-                    WindowManager.shared.showMainTimer()
-                }) {
-                    Text("Open Main Window")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
-                
-                Button(action: {
-                    dismiss()
+                .padding(.bottom, 16)
+            } else {
+                HStack(spacing: 12) {
+                    Color.clear.frame(width: 32, height: 32) // Balance placeholder
                     
+                    PlayPauseButton(timerManager: timerManager, size: 60, iconSize: .title2)
+                    
+                    Button(action: {
+                        withAnimation {
+                            timerManager.skipCurrentPhase()
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 16)
+            }
+            
+            Divider()
+                .padding(.horizontal, 16)
+            
+            // Secondary Actions
+            VStack(spacing: 4) {
+                PopoverMenuItem(title: "Open Main Window") {
+                    WindowManager.shared.showMainTimer()
+                    dismiss()
+                }
+                
+                PopoverMenuItem(title: "Settings") {
+                    dismiss()
                     Task { @MainActor in
                         await Task.yield()
-                        openWindow(id: "settingsWindow")
-                        WindowManager.shared.focusSettingsWindow()
+                        WindowManager.shared.showSettingsWindow()
                     }
-                }) {
-                    Text("Settings")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
                 
-                Divider()
-                    .padding(.vertical, 4)
-                
-                Button(action: {
+                PopoverMenuItem(title: "Quit") {
                     NSApplication.shared.terminate(nil)
-                }) {
-                    Text("Quit")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
             }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
         }
-        .padding()
-        .frame(width: 250)
+        .padding(.vertical, 16)
+        .frame(width: 280)
     }
+}
+
+struct PopoverMenuItem: View {
+    let title: String
+    let action: () -> Void
+    @State private var isHovered = false
     
-    private var phaseText: String {
-        switch timerManager.phase {
-        case .work: return "Work"
-        case .shortBreak: return "Short Break"
-        case .longBreak: return "Long Break"
-        case .flowExtension: return "Flow Extension"
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 14))
+                .foregroundColor(isHovered ? .white : .primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isHovered ? Color.accentColor : Color.clear)
+                .cornerRadius(4)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 }

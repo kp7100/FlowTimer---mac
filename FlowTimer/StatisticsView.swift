@@ -17,7 +17,6 @@ struct StatisticsView: View {
                     .padding(.horizontal)
             }
             .padding()
-            .frame(width: 400, height: 500)
         } else {
             ScrollView {
                 VStack(spacing: 24) {
@@ -79,7 +78,6 @@ struct StatisticsView: View {
                 }
                 .padding()
             }
-            .frame(width: 400, height: 540)
         }
     }
 }

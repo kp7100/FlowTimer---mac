@@ -1,6 +1,6 @@
 import Foundation
 
-enum TimerDirection: Sendable {
+enum TimerDirection: String, Sendable, Codable {
     case countdown
     case countup
 }
