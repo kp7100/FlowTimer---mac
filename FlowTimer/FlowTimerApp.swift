@@ -14,6 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         WindowManager.shared.timerManager = timerManager
         
+        WindowLifecycleObserver.shared.start()
+        
         if useNativeStatusItem {
             StatusBarManager.shared.setup(timerManager: timerManager)
         }

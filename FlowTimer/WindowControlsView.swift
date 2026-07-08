@@ -11,6 +11,7 @@ struct WindowControlsView: View {
     
     @State private var isHoveringClose = false
     @State private var isHoveringMini = false
+    @Environment(\.ambientTheme) var theme
     
     var body: some View {
         HStack(spacing: 8) {
@@ -25,11 +26,11 @@ struct WindowControlsView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: FlowUIConstants.closeButtonIconSize, weight: .bold))
-                        .foregroundColor(isHoveringClose ? .red : .primary.opacity(FlowUIConstants.closeButtonNormalOpacity))
+                        .foregroundColor(isHoveringClose ? .red : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalOpacity))
                         .frame(width: FlowUIConstants.closeButtonDiameter, height: FlowUIConstants.closeButtonDiameter)
                         .background(
                             Circle()
-                                .fill(isHoveringClose ? Color.red.opacity(FlowUIConstants.closeButtonHoverBackgroundOpacity) : Color.primary.opacity(FlowUIConstants.closeButtonNormalBackgroundOpacity))
+                                .fill(isHoveringClose ? Color.red.opacity(FlowUIConstants.closeButtonHoverBackgroundOpacity) : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalBackgroundOpacity))
                         )
                 }
                 .buttonStyle(.plain)
@@ -52,11 +53,11 @@ struct WindowControlsView: View {
                 }) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .font(.system(size: FlowUIConstants.closeButtonIconSize, weight: .bold))
-                        .foregroundColor(isHoveringMini ? Color.accentColor : .primary.opacity(FlowUIConstants.closeButtonNormalOpacity))
+                        .foregroundColor(isHoveringMini ? theme.accentColor : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalOpacity))
                         .frame(width: FlowUIConstants.closeButtonDiameter, height: FlowUIConstants.closeButtonDiameter)
                         .background(
                             Circle()
-                                .fill(isHoveringMini ? Color.accentColor.opacity(FlowUIConstants.closeButtonHoverBackgroundOpacity) : Color.primary.opacity(FlowUIConstants.closeButtonNormalBackgroundOpacity))
+                                .fill(isHoveringMini ? theme.accentColor.opacity(FlowUIConstants.closeButtonHoverBackgroundOpacity) : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalBackgroundOpacity))
                         )
                 }
                 .buttonStyle(.plain)

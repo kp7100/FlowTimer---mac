@@ -30,4 +30,5 @@ struct FlowUIConstants {
     static var closeButtonHoverBackgroundColor: CGColor {
         NSColor.systemRed.withAlphaComponent(closeButtonHoverBackgroundOpacity).cgColor
     }
+    
 }

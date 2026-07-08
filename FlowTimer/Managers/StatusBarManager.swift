@@ -9,7 +9,8 @@ class StatusBarManager: NSObject, NSPopoverDelegate {
     private var timerManager: TimerManager?
     
     private var hostingView: NSHostingView<AnyView>?
-    private var eventMonitor: Any?
+    private var globalEventMonitor: Any?
+    private var localEventMonitor: Any?
     private var lastAppliedWidth: CGFloat = -1.0
     
     private override init() {
@@ -87,9 +88,13 @@ class StatusBarManager: NSObject, NSPopoverDelegate {
     }
     
     func popoverDidClose(_ notification: Notification) {
-        if let monitor = eventMonitor {
+        if let monitor = globalEventMonitor {
             NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
         }
         
         // Clear focus to prevent any SwiftUI buttons from retaining focus across appearances
@@ -100,22 +105,48 @@ class StatusBarManager: NSObject, NSPopoverDelegate {
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {
+        WindowLifecycleObserver.shared.logEvent("🔘 Menu bar button clicked (togglePopover called)")
         if popover.isShown {
+            WindowLifecycleObserver.shared.logEvent("🔘 Closing popover...")
             popover.performClose(sender)
         } else {
+            WindowLifecycleObserver.shared.logEvent("🔘 Opening popover...")
             if let button = statusItem.button, let timerManager = timerManager {
                 // Recreate the hosting controller every time to prevent sticky SwiftUI states (like button focus/hover)
                 // This mimics native NSMenu behavior which is stateless across presentations.
-                let popoverView = MenuBarPopoverView(timerManager: timerManager)
+                // let popoverView = MenuBarPopoverView(timerManager: timerManager)
+                let popoverView = TextFieldPrototypeView()
                 popover.contentViewController = NSHostingController(rootView: popoverView)
                 
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                NSApp.activate(ignoringOtherApps: true)
                 
                 // Add global monitor to close popover when clicking outside
-                if eventMonitor == nil {
-                    eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+                if globalEventMonitor == nil {
+                    globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
                         self?.popover.performClose(nil)
+                    }
+                }
+                
+                // Add local monitor to prevent Space key from triggering the status item button while typing
+                // TODO: Revisit after Main Window experiment.
+                // This is a specific workaround for the Space key. A cleaner architectural fix would be to
+                // have the popover enter an editing mode where the status bar button ignores keyboard activation
+                // entirely, allowing the text field to fully own the keyboard via the responder chain.
+                if localEventMonitor == nil {
+                    localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                        // Space (49) and Arrow Keys (123-126) natively trigger menu bar navigation or button clicks,
+                        // causing the popover to dismiss. If we are editing, intercept them and forward them directly.
+                        if event.keyCode == 49 || (123...126).contains(event.keyCode) {
+                            // Check if a text field is currently the first responder
+                            if let firstResponder = self?.popover.contentViewController?.view.window?.firstResponder as? NSTextView,
+                               firstResponder.isEditable {
+                                // Forward the event directly to the text view (handles spacing, cursor movement, etc.)
+                                firstResponder.keyDown(with: event)
+                                // Swallow the event so it never reaches the NSStatusBarButton / Menu navigation
+                                return nil
+                            }
+                        }
+                        return event
                     }
                 }
             }
@@ -130,10 +161,15 @@ struct MenuBarStatusView: View {
     @State private var isDarkMode: Bool = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
     
     var body: some View {
+        let theme = AmbientTheme.current(for: timerManager.phase, isDarkMode: isDarkMode)
+        
         HStack(spacing: 4) {
             if !timerManager.menuBarTitle.isEmpty {
                 Text(timerManager.menuBarTitle)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 150, alignment: .trailing)
             }
             
             Text(timerManager.remainingTimeFormatted)
@@ -143,9 +179,10 @@ struct MenuBarStatusView: View {
                 .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(isDarkMode ? Color.black : Color.white)
+                        .fill(theme.menuBarPillBackground)
+                        .animation(.easeInOut(duration: theme.animationDuration), value: theme.menuBarPillBackground)
                 )
-                .foregroundStyle(isDarkMode ? Color.white : Color.black)
+                .foregroundStyle(theme.menuBarPillForeground)
         }
         .fixedSize()
         .background(

@@ -11,7 +11,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
     private let panel: RenameSessionPanel
     private let textField = NSTextField()
     private let titleLabel = NSTextField(labelWithString: "Edit Session Title")
-    private weak var timerManager: TimerManager?
+    private let timerManager: TimerManager
     
     init(timerManager: TimerManager) {
         self.timerManager = timerManager
@@ -149,7 +149,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
     private func commit() {
         let trimmed = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
-            timerManager?.sessionTitle = trimmed
+            timerManager.sessionTitle = trimmed
         }
         // If empty, we just leave the original title intact.
         hide()

@@ -2,16 +2,12 @@ import SwiftUI
 import AppKit
 import Observation
 
-func traceLog(_ msg: String) {
-    let url = URL(fileURLWithPath: "/tmp/flowtimer_trace.log")
-    let txt = "\(msg)\n"
-    if let handle = try? FileHandle(forWritingTo: url) {
-        handle.seekToEndOfFile()
-        handle.write(txt.data(using: .utf8)!)
-        handle.closeFile()
-    } else {
-        try? txt.write(to: url, atomically: true, encoding: .utf8)
-    }
+enum FlowWellnessState {
+    case coffee
+    case stretch
+    case water
+    case eyes
+    case walk
 }
 
 @MainActor
@@ -27,6 +23,12 @@ final class TimerManager {
     var isRunning: Bool = false
     var state: TimerState = .idle
     var phase: TimerPhase = .work
+    
+    var flowExtensionElapsedSeconds: Double {
+        guard phase == .flowExtension else { return 0 }
+        return Double(currentPhaseDuration)
+    }
+    
     var currentSession: Int = 1
     var totalSessions: Int { settings.sessionsPerCycle }
     
@@ -39,6 +41,7 @@ final class TimerManager {
     var activeTag: String? { currentTag }
     
     private var currentPhaseStartDate: Date?
+    var phaseStartDate: Date { currentPhaseStartDate ?? Date() }
     private var currentPhaseDuration: Int
     private var lastCheckpoint: Date = Date()
     
@@ -59,12 +62,22 @@ final class TimerManager {
         case .work:
             return sessionTitle
         case .shortBreak:
-            return "Break"
+            return "Short Break"
         case .longBreak:
             return "Long Break"
         case .flowExtension:
             return "Flow"
         }
+    }
+    
+        private let flowWellnessIconThresholdSeconds: Int = 900
+    
+    var flowWellnessState: FlowWellnessState {
+        guard phase == .flowExtension else { return .coffee }
+        if currentPhaseDuration >= flowWellnessIconThresholdSeconds {
+            return .stretch
+        }
+        return .coffee
     }
     
     init(settingsManager: SettingsManager = .shared) {
@@ -73,10 +86,9 @@ final class TimerManager {
         self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
         
-        traceLog("[TRACE] TimerManager.init started")
         
-        Task {
-            await self.initialize()
+        Task { [weak self] in
+            await self?.initialize()
         }
         
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
@@ -89,8 +101,8 @@ final class TimerManager {
     }
     
     func saveState() {
-        Task {
-            traceLog("[TRACE] saveState() called")
+        Task { [weak self] in
+            guard let self else { return }
             let engineSnapshot = await engine.snapshot()
             let snapshot = TimerSnapshot(
                 currentSession: currentSession,
@@ -99,7 +111,6 @@ final class TimerManager {
                 sessionTitle: sessionTitle
             )
             
-            traceLog("[TRACE] saveState(): saving snapshot (state: \(engineSnapshot.state), phase: \(engineSnapshot.phase), accumulated: \(engineSnapshot.accumulatedSeconds))")
             if let data = try? JSONEncoder().encode(snapshot) {
                 UserDefaults.standard.set(data, forKey: "timerSnapshot")
             }
@@ -108,7 +119,8 @@ final class TimerManager {
     
     func settingsDidChange() {
         if state == .idle {
-            Task {
+            Task { [weak self] in
+                guard let self else { return }
                 let duration: Int
                 switch phase {
                 case .work: duration = settings.workDuration
@@ -124,7 +136,6 @@ final class TimerManager {
     }
     
     private func initialize() async {
-        traceLog("[TRACE] initialize() started")
         
         await engine.setCallbacks(
             onTick: { [weak self] remainingSeconds in
@@ -172,19 +183,16 @@ final class TimerManager {
         if let data = UserDefaults.standard.data(forKey: "timerSnapshot"),
            let snapshot = try? JSONDecoder().decode(TimerSnapshot.self, from: data) {
             
-            traceLog("[TRACE] initialize(): found snapshot")
             let isToday = Calendar.current.isDateInToday(snapshot.engineSnapshot.savedAt)
             if isToday {
                 shouldRestore = true
                 snapshotToRestore = snapshot
             } else {
-                traceLog("[TRACE] initialize(): snapshot from different day, clearing")
                 UserDefaults.standard.removeObject(forKey: "timerSnapshot")
             }
         }
         
         if shouldRestore, let snapshot = snapshotToRestore {
-            traceLog("[TRACE] initialize(): restoring engine")
             self.currentSession = snapshot.currentSession
             self.currentPhaseStartDate = snapshot.currentPhaseStartDate
             if let savedTitle = snapshot.sessionTitle {
@@ -194,7 +202,6 @@ final class TimerManager {
             }
             await engine.restore(from: snapshot.engineSnapshot)
         } else {
-            traceLog("[TRACE] initialize(): configuring fresh engine")
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
         }
@@ -270,7 +277,8 @@ final class TimerManager {
         }
         currentPhaseStartDate = nil
         
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             switch phase {
             case .work:
                 NotificationManager.shared.sendNotification(
@@ -288,7 +296,8 @@ final class TimerManager {
     }
     
     func takeBreak() {
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             await engine.pause()
             
             if let startDate = currentPhaseStartDate {
@@ -314,7 +323,8 @@ final class TimerManager {
     }
     
     func skipCurrentPhase() {
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             await engine.pause()
             currentPhaseStartDate = nil
             await advanceToNextPhase(isSkip: true)
@@ -334,25 +344,26 @@ final class TimerManager {
         if currentPhaseStartDate == nil {
             currentPhaseStartDate = Date()
         }
-        Task {
-            await engine.start()
+        Task { [weak self] in
+            await self?.engine.start()
         }
     }
     
     func pause() {
-        Task {
-            await engine.pause()
+        Task { [weak self] in
+            await self?.engine.pause()
         }
     }
     
     func resume() {
-        Task {
-            await engine.resume()
+        Task { [weak self] in
+            await self?.engine.resume()
         }
     }
     
     func reset() {
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             currentSession = 1
             currentPhaseStartDate = nil
             currentPhaseDuration = settings.workDuration

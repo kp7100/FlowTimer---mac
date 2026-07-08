@@ -3,30 +3,39 @@ import SwiftUI
 struct MenuBarPopoverView: View {
     @Bindable var timerManager: TimerManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var currentTheme: AmbientTheme {
+        AmbientTheme.current(for: timerManager.phase, isDarkMode: colorScheme == .dark)
+    }
     
     var body: some View {
         VStack(spacing: 8) {
             // Top Bar
             HStack(spacing: 12) {
                 WindowControlsView(isHoveringWindow: true, showCloseButton: false, onClose: {
-                    dismiss()
+                    WindowManager.shared.toggleMiniTimer()
                 })
                 
                 if SettingsManager.shared.settings.goalsEnabled {
                     let progress = GoalManager.shared.progress
                     Text(progress.displayText)
                         .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(currentTheme.secondaryForegroundColor)
                 }
                 Spacer()
+                
+                if timerManager.phase == .work || timerManager.phase == .flowExtension {
+                    TagSelectorMenu()
+                }
             }
             .padding(.horizontal, 20)
             
             Spacer().frame(height: 8)
             
             // Session Title
-            InlineEditableTitle(
-                title: $timerManager.sessionTitle,
+            SharedSessionTitleView(
+                timerManager: timerManager,
                 fontSize: 22,
                 fontWeight: .medium,
                 alignment: .center,
@@ -55,14 +64,9 @@ struct MenuBarPopoverView: View {
                         }
                     }) {
                         Text("Take Break")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .frame(height: 44)
-                            .background(Color.accentColor)
-                            .clipShape(Capsule())
+                            .font(.subheadline)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PrimaryAmbientButtonStyle())
                 }
                 .padding(.bottom, 16)
             } else {
@@ -78,7 +82,7 @@ struct MenuBarPopoverView: View {
                     }) {
                         Image(systemName: "chevron.right")
                             .font(.title2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(currentTheme.secondaryForegroundColor)
                             .frame(width: 32, height: 32)
                             .contentShape(Rectangle())
                     }
@@ -114,7 +118,8 @@ struct MenuBarPopoverView: View {
             .padding(.bottom, 4)
         }
         .padding(.vertical, 16)
-        .frame(width: 280)
+        .frame(width: 320)
+        .ambientTheme(currentTheme)
     }
 }
 
@@ -122,16 +127,17 @@ struct PopoverMenuItem: View {
     let title: String
     let action: () -> Void
     @State private var isHovered = false
+    @Environment(\.ambientTheme) var theme
     
     var body: some View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 14))
-                .foregroundColor(isHovered ? .white : .primary)
+                .foregroundColor(isHovered ? theme.buttonForeground : theme.foregroundColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isHovered ? Color.accentColor : Color.clear)
+                .background(isHovered ? theme.accentColor : Color.clear)
                 .cornerRadius(4)
                 .contentShape(Rectangle())
         }

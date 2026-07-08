@@ -12,6 +12,7 @@ struct InlineEditableTitle: View {
     
     @State private var isHovering = false
     @State private var isEditing = false
+    @Environment(\.ambientTheme) var theme
     
     var body: some View {
         NativeInlineTextField(
@@ -19,6 +20,8 @@ struct InlineEditableTitle: View {
             fontSize: fontSize,
             fontWeight: fontWeight,
             alignment: alignment,
+            foregroundColor: theme.foregroundColor,
+            secondaryForegroundColor: theme.secondaryForegroundColor,
             isEditing: $isEditing
         )
         .frame(maxWidth: .infinity, alignment: frameAlignment)
@@ -26,7 +29,7 @@ struct InlineEditableTitle: View {
         .padding(.horizontal, 4) // Reduced from 12 so it doesn't push the leading edge too much in the mini timer
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.primary.opacity(isHovering && !isEditing ? 0.06 : 0))
+                .fill(theme.foregroundColor.opacity(isHovering && !isEditing ? 0.06 : 0))
         )
         .onHover { hover in
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -41,6 +44,8 @@ struct NativeInlineTextField: NSViewRepresentable {
     var fontSize: CGFloat
     var fontWeight: Font.Weight
     var alignment: TextAlignment
+    var foregroundColor: Color
+    var secondaryForegroundColor: Color
     @Binding var isEditing: Bool
     
     func makeNSView(context: Context) -> ClickToEditTextField {
@@ -61,8 +66,14 @@ struct NativeInlineTextField: NSViewRepresentable {
         case .trailing: textField.alignment = .right
         }
         
-        textField.lineBreakMode = .byTruncatingTail
+        textField.usesSingleLineMode = true
+        textField.cell?.isScrollable = true
+        textField.cell?.wraps = false
         textField.maximumNumberOfLines = 1
+        textField.lineBreakMode = .byTruncatingTail
+        
+        // CRITICAL FIX: Allow SwiftUI to squish the text field so native truncation can kick in
+        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         
         textField.onBeginEditing = {
             context.coordinator.draftText = textField.stringValue
@@ -77,7 +88,10 @@ struct NativeInlineTextField: NSViewRepresentable {
     func updateNSView(_ nsView: ClickToEditTextField, context: Context) {
         if !isEditing {
             nsView.stringValue = text.isEmpty ? "What's your focus?" : text
-            nsView.textColor = text.isEmpty ? .secondaryLabelColor : .labelColor
+            nsView.textColor = text.isEmpty ? NSColor(secondaryForegroundColor) : NSColor(foregroundColor)
+            nsView.lineBreakMode = .byTruncatingTail
+        } else {
+            nsView.lineBreakMode = .byClipping // Allows native scrolling without ellipsis while typing
         }
     }
     
@@ -110,7 +124,7 @@ struct NativeInlineTextField: NSViewRepresentable {
         
         func controlTextDidBeginEditing(_ obj: Notification) {
             if let textField = obj.object as? NSTextField {
-                textField.textColor = .labelColor
+                textField.textColor = NSColor(parent.foregroundColor)
             }
         }
         
@@ -145,11 +159,20 @@ struct NativeInlineTextField: NSViewRepresentable {
 class ClickToEditTextField: NSTextField {
     var onBeginEditing: (() -> Void)?
     
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return true
+    }
+    
     override func mouseDown(with event: NSEvent) {
+        if !NSApp.isActive {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        
         if !isEditable {
             isEditable = true
             isSelectable = true
             onBeginEditing?()
+            window?.makeKeyAndOrderFront(nil)
             window?.makeFirstResponder(self)
         }
         super.mouseDown(with: event)

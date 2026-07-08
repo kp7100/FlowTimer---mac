@@ -1,16 +1,5 @@
 import Foundation
 
-func traceLog_engine(_ msg: String) {
-    let url = URL(fileURLWithPath: "/tmp/flowtimer_trace.log")
-    let txt = "\(msg)\n"
-    if let handle = try? FileHandle(forWritingTo: url) {
-        handle.seekToEndOfFile()
-        handle.write(txt.data(using: .utf8)!)
-        handle.closeFile()
-    } else {
-        try? txt.write(to: url, atomically: true, encoding: .utf8)
-    }
-}
 
 @available(macOS 13.0, *)
 actor TimerEngine {
@@ -144,7 +133,6 @@ actor TimerEngine {
     }
     
     func restore(from snapshot: EngineSnapshot) {
-        traceLog_engine("[TRACE] TimerEngine.restore() called with state: \(snapshot.state), phase: \(snapshot.phase)")
         task?.cancel()
         task = nil
         

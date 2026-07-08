@@ -2,7 +2,12 @@ import SwiftUI
 
 struct CompactTimerView: View {
     @Bindable var timerManager: TimerManager
+    @Environment(\.colorScheme) var colorScheme
     @State private var isHoveringWindow = false
+    
+    private var currentTheme: AmbientTheme {
+        AmbientTheme.current(for: timerManager.phase, isDarkMode: colorScheme == .dark)
+    }
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -14,14 +19,15 @@ struct CompactTimerView: View {
                 // Unified Hero Block
                 VStack(alignment: .center, spacing: 0) {
                     VStack(alignment: .leading, spacing: -4) {
-                        InlineEditableTitle(
-                            title: $timerManager.sessionTitle,
+                        SharedSessionTitleView(
+                            timerManager: timerManager,
                             fontSize: 14,
                             fontWeight: .bold,
                             alignment: .leading,
                             frameAlignment: .leading
                         )
                         .padding(.leading, 22) // Shift text right and prevent background from bleeding under Close button
+                        .padding(.trailing, -45) // Allow title to use empty space above the play button without expanding the VStack, but leave breathing room on the right
                         .offset(y: -4) // Optically align baseline
                         
                         ZStack(alignment: .center) {
@@ -67,12 +73,8 @@ struct CompactTimerView: View {
             .padding(.leading, 12)
         }
         .frame(width: 220, height: 112)
-        .fixedSize()
         .ignoresSafeArea()
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(NSColor.windowBackgroundColor))
-        )
+        .ambientTheme(currentTheme)
         .onHover { hover in
             isHoveringWindow = hover
         }

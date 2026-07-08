@@ -62,6 +62,7 @@ struct SettingsView: View {
             
             Section("Focus") {
                 Picker("Work Duration", selection: $settingsManager.settings.workDuration) {
+                    Text("30 sec (Test)").tag(30)
                     ForEach(workOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }
@@ -70,12 +71,14 @@ struct SettingsView: View {
             
             Section("Breaks") {
                 Picker("Short Break", selection: $settingsManager.settings.shortBreakDuration) {
+                    Text("5 sec (Test)").tag(5)
                     ForEach(shortBreakOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }
                 }
                 
                 Picker("Long Break", selection: $settingsManager.settings.longBreakDuration) {
+                    Text("10 sec (Test)").tag(10)
                     ForEach(longBreakOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }

@@ -29,7 +29,7 @@ final class GoalManager {
             let filled = min(6, Int(fraction * 6.0))
             let completed = current >= target
             
-            let display = completed ? "Goal Completed ✓" : "\(TimeFormatter.formatForStats(seconds: current)) / \(TimeFormatter.formatForStats(seconds: target))"
+            let display = completed ? "\(TimeFormatter.formatForStats(seconds: current)) / \(TimeFormatter.formatForStats(seconds: target)) ✓" : "\(TimeFormatter.formatForStats(seconds: current)) / \(TimeFormatter.formatForStats(seconds: target))"
             
             return DailyGoalProgress(
                 title: "Today's Goal",

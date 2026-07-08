@@ -5,6 +5,7 @@ struct PlayPauseButton: View {
     var size: CGFloat = 60
     var iconSize: Font = .title2
     var isMiniTimer: Bool = false
+    @Environment(\.ambientTheme) var theme
     
     var body: some View {
         Button(action: {
@@ -21,18 +22,18 @@ struct PlayPauseButton: View {
             }
         }) {
             if isMiniTimer && timerManager.phase == .flowExtension {
-                Image(systemName: "cup.and.saucer.fill")
+                Image(systemName: WellnessIconProvider.icon(for: timerManager.flowWellnessState))
                     .font(iconSize)
-                    .foregroundColor(Color.accentColor)
+                    .foregroundColor(theme.buttonForeground)
                     .frame(width: size, height: size)
-                    .background(Color.accentColor.opacity(0.15))
+                    .background(theme.buttonBackground)
                     .clipShape(Circle())
             } else {
                 Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
                     .font(iconSize)
-                    .foregroundColor(timerManager.phase == .flowExtension ? .secondary : Color.accentColor)
+                    .foregroundColor(timerManager.phase == .work ? theme.accentColor : theme.buttonForeground)
                     .frame(width: size, height: size)
-                    .background((timerManager.phase == .flowExtension ? Color.secondary : Color.accentColor).opacity(0.15))
+                    .background(timerManager.phase == .work ? theme.accentColor.opacity(0.15) : theme.buttonBackground)
                     .clipShape(Circle())
             }
         }
