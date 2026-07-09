@@ -6,6 +6,15 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1BAB464492D2B33D0C703797 /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
+		24F7434EB7040DC70E27078C /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
+		277048A19D9349260D537F71 /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
+		2A684B07A8D9597CF6FA513D /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
+		6002444381ABFDDF9CF84A1C /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
+		9E274FBFAF2AC4C94A0F9E48 /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B9F5833E2FF7C3DA006071AF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,27 +33,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RenameSessionPanelController.swift; path = FlowTimer/RenameSessionPanelController.swift; sourceTree = SOURCE_ROOT; };
 		B9F5832E2FF7C3D7006071AF /* FlowTimer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlowTimer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9F5833D2FF7C3DA006071AF /* FlowTimerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowTimerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9F583472FF7C3DA006071AF /* FlowTimerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowTimerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FlowCloseButton.swift; path = FlowTimer/FlowCloseButton.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		B9F583302FF7C3D7006071AF /* FlowTimer */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FlowTimer;
-			sourceTree = "<group>";
-		};
-		B9F583402FF7C3DA006071AF /* FlowTimerTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FlowTimerTests;
-			sourceTree = "<group>";
-		};
-		B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FlowTimerUITests;
-			sourceTree = "<group>";
-		};
+		B9F583302FF7C3D7006071AF /* FlowTimer */ = {isa = PBXFileSystemSynchronizedRootGroup; path = FlowTimer; sourceTree = "<group>"; };
+		B9F583402FF7C3DA006071AF /* FlowTimerTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = FlowTimerTests; sourceTree = "<group>"; };
+		B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = FlowTimerUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +72,8 @@
 				B9F583402FF7C3DA006071AF /* FlowTimerTests */,
 				B9F5834A2FF7C3DA006071AF /* FlowTimerUITests */,
 				B9F5832F2FF7C3D7006071AF /* Products */,
+				497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */,
+				F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -215,16 +216,22 @@
 		B9F5832A2FF7C3D7006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				9E274FBFAF2AC4C94A0F9E48 /* RenameSessionPanelController.swift in Sources */,
+				1BAB464492D2B33D0C703797 /* FlowCloseButton.swift in Sources */,
 			);
 		};
 		B9F583392FF7C3DA006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				2A684B07A8D9597CF6FA513D /* RenameSessionPanelController.swift in Sources */,
+				277048A19D9349260D537F71 /* FlowCloseButton.swift in Sources */,
 			);
 		};
 		B9F583432FF7C3DA006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				6002444381ABFDDF9CF84A1C /* RenameSessionPanelController.swift in Sources */,
+				24F7434EB7040DC70E27078C /* FlowCloseButton.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
@@ -243,7 +250,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		B9F5834D2FF7C3DA006071AF /* Debug configuration for PBXProject "FlowTimer" */ = {
+		B9F5834D2FF7C3DA006071AF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -307,7 +314,7 @@
 			};
 			name = Debug;
 		};
-		B9F5834E2FF7C3DA006071AF /* Release configuration for PBXProject "FlowTimer" */ = {
+		B9F5834E2FF7C3DA006071AF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -363,7 +370,7 @@
 			};
 			name = Release;
 		};
-		B9F583502FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimer" */ = {
+		B9F583502FF7C3DA006071AF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -395,7 +402,7 @@
 			};
 			name = Debug;
 		};
-		B9F583512FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimer" */ = {
+		B9F583512FF7C3DA006071AF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -427,7 +434,7 @@
 			};
 			name = Release;
 		};
-		B9F583532FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerTests" */ = {
+		B9F583532FF7C3DA006071AF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -448,7 +455,7 @@
 			};
 			name = Debug;
 		};
-		B9F583542FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerTests" */ = {
+		B9F583542FF7C3DA006071AF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -469,7 +476,7 @@
 			};
 			name = Release;
 		};
-		B9F583562FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerUITests" */ = {
+		B9F583562FF7C3DA006071AF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -488,7 +495,7 @@
 			};
 			name = Debug;
 		};
-		B9F583572FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerUITests" */ = {
+		B9F583572FF7C3DA006071AF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -513,32 +520,32 @@
 		B9F583292FF7C3D7006071AF /* Build configuration list for PBXProject "FlowTimer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B9F5834D2FF7C3DA006071AF /* Debug configuration for PBXProject "FlowTimer" */,
-				B9F5834E2FF7C3DA006071AF /* Release configuration for PBXProject "FlowTimer" */,
+				B9F5834D2FF7C3DA006071AF /* Debug */,
+				B9F5834E2FF7C3DA006071AF /* Release */,
 			);
 			defaultConfigurationName = Release;
 		};
 		B9F5834F2FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B9F583502FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimer" */,
-				B9F583512FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimer" */,
+				B9F583502FF7C3DA006071AF /* Debug */,
+				B9F583512FF7C3DA006071AF /* Release */,
 			);
 			defaultConfigurationName = Release;
 		};
 		B9F583522FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B9F583532FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerTests" */,
-				B9F583542FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerTests" */,
+				B9F583532FF7C3DA006071AF /* Debug */,
+				B9F583542FF7C3DA006071AF /* Release */,
 			);
 			defaultConfigurationName = Release;
 		};
 		B9F583552FF7C3DA006071AF /* Build configuration list for PBXNativeTarget "FlowTimerUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B9F583562FF7C3DA006071AF /* Debug configuration for PBXNativeTarget "FlowTimerUITests" */,
-				B9F583572FF7C3DA006071AF /* Release configuration for PBXNativeTarget "FlowTimerUITests" */,
+				B9F583562FF7C3DA006071AF /* Debug */,
+				B9F583572FF7C3DA006071AF /* Release */,
 			);
 			defaultConfigurationName = Release;
 		};

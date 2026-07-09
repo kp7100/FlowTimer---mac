@@ -10,6 +10,11 @@ enum FlowWellnessState {
     case walk
 }
 
+struct AdaptiveBreakPayload: Equatable {
+    let totalWorkMinutes: Int
+    let extraBreakMinutes: Int
+}
+
 @MainActor
 @Observable
 final class TimerManager {
@@ -23,7 +28,9 @@ final class TimerManager {
     var isRunning: Bool = false
     var state: TimerState = .idle
     var phase: TimerPhase = .work
+    var phaseInstanceID: UUID = UUID()
     var flowTransitionID: UUID?
+    var recentAdaptiveBreakPayload: AdaptiveBreakPayload?
     private var hasTriggeredFlowTransition = false
     
     var flowExtensionElapsedSeconds: Double {
@@ -175,6 +182,7 @@ final class TimerManager {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.phase = newPhase
+                    self.phaseInstanceID = UUID()
                     self.saveState()
                 }
             },
@@ -258,14 +266,34 @@ final class TimerManager {
             }
             
         case .flowExtension:
+            let configuredWorkDuration = max(1, settings.workDuration) // Prevent division by zero
+            let flowExtensionDuration = max(0, currentPhaseDuration)
+            let totalWorkTime = configuredWorkDuration + flowExtensionDuration
+            
             if currentSession >= totalSessions {
-                currentPhaseDuration = settings.longBreakDuration
+                let configuredBreakDuration = settings.longBreakDuration
+                
+                currentPhaseDuration = configuredBreakDuration
                 await engine.setPhase(.longBreak, direction: .countdown)
-                await engine.setDuration(settings.longBreakDuration)
+                await engine.setDuration(configuredBreakDuration)
             } else {
-                currentPhaseDuration = settings.shortBreakDuration
+                let configuredBreakDuration = settings.shortBreakDuration
+                let exactAdaptiveBreakDuration = Double(totalWorkTime) * Double(configuredBreakDuration) / Double(configuredWorkDuration)
+                let roundedMinutes = (exactAdaptiveBreakDuration / 60.0).rounded()
+                let adaptiveBreakDuration = Int(roundedMinutes * 60.0)
+                
+                let extraBreakSeconds = adaptiveBreakDuration - configuredBreakDuration
+                if extraBreakSeconds >= 60 {
+                    let totalWorkMins = Int((Double(totalWorkTime) / 60.0).rounded())
+                    let extraBreakMins = Int((Double(extraBreakSeconds) / 60.0).rounded())
+                    self.recentAdaptiveBreakPayload = AdaptiveBreakPayload(totalWorkMinutes: totalWorkMins, extraBreakMinutes: extraBreakMins)
+                } else {
+                    self.recentAdaptiveBreakPayload = nil
+                }
+                
+                currentPhaseDuration = adaptiveBreakDuration
                 await engine.setPhase(.shortBreak, direction: .countdown)
-                await engine.setDuration(settings.shortBreakDuration)
+                await engine.setDuration(adaptiveBreakDuration)
             }
             if settings.autoStartBreaks {
                 self.start()

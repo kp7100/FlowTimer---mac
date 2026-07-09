@@ -24,7 +24,7 @@ class ShortcutDispatcher {
         case .toggleMiniWindow:
             WindowManager.shared.toggleMiniTimer()
         case .renameCurrentSession:
-            break
+            WindowManager.shared.showRenameSessionPanel()
         }
     }
 }

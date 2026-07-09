@@ -56,6 +56,15 @@ final class WindowManager {
         panel.makeKeyAndOrderFront(nil)
     }
     
+    private var renamePanelController: RenameSessionPanelController?
+    
+    func showRenameSessionPanel() {
+        if renamePanelController == nil, let timerManager = timerManager {
+            renamePanelController = RenameSessionPanelController(timerManager: timerManager)
+        }
+        renamePanelController?.show()
+    }
+    
     func hideMiniTimer() {
         miniPanel?.orderOut(nil)
     }

@@ -9,12 +9,10 @@ struct WellnessPromptView: View {
     
     @Environment(\.ambientTheme) var theme
     
-    @State private var currentMessage: WellnessMessage?
-    
     var body: some View {
         Group {
             if timerManager.phase == .shortBreak {
-                if WellnessPromptProvider.shared.isPromptActive, let message = currentMessage {
+                if WellnessPromptProvider.shared.isPromptActive, let message = WellnessPromptProvider.shared.currentMessage {
                     Text(message.text)
                         .font(.system(size: fontSize, weight: fontWeight))
                         .foregroundColor(theme.foregroundColor)
@@ -42,16 +40,18 @@ struct WellnessPromptView: View {
                     .truncationMode(.tail)
             }
         }
-        .task(id: timerManager.phaseStartDate) {
+        .task(id: timerManager.phaseInstanceID) {
             let context = WellnessContext(
-                phaseID: timerManager.phaseStartDate,
+                phaseID: timerManager.phaseInstanceID,
                 phase: timerManager.phase,
                 currentSession: timerManager.currentSession,
-                sessionsPerCycle: timerManager.totalSessions
+                sessionsPerCycle: timerManager.totalSessions,
+                adaptivePayload: timerManager.recentAdaptiveBreakPayload
             )
             
+            
             // The provider handles caching and the 25-second display timer globally
-            currentMessage = WellnessPromptProvider.shared.prompt(for: context)
+            _ = WellnessPromptProvider.shared.prompt(for: context)
         }
     }
 }

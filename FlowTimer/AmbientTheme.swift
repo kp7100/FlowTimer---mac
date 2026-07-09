@@ -53,7 +53,7 @@ struct AmbientTheme: Equatable {
                 menuBarPillBackground: isDarkMode ? .black : .white,
                 menuBarPillForeground: isDarkMode ? .white : .black,
                 timerTextColor: .primary,
-                animationDuration: 1.5
+                animationDuration: 0.5
             )
             
         case .flowExtension:
@@ -80,7 +80,7 @@ struct AmbientTheme: Equatable {
                 menuBarPillBackground: flowColor,
                 menuBarPillForeground: .white,
                 timerTextColor: flowColor,
-                animationDuration: 1.5
+                animationDuration: 0.5
             )
             
         case .shortBreak:
@@ -107,7 +107,7 @@ struct AmbientTheme: Equatable {
                 menuBarPillBackground: bgTeal,
                 menuBarPillForeground: .white,
                 timerTextColor: .white,
-                animationDuration: 1.5
+                animationDuration: 0.5
             )
             
         case .longBreak:
@@ -134,7 +134,7 @@ struct AmbientTheme: Equatable {
                 menuBarPillBackground: bgLongTeal,
                 menuBarPillForeground: .white,
                 timerTextColor: .white,
-                animationDuration: 1.5
+                animationDuration: 0.5
             )
         }
     }

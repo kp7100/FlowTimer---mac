@@ -58,7 +58,7 @@ final class WellnessPromptProvider {
     // Memoization state
     private var currentBreakSession: Int = -1
     private var lastDrawTime: Date = .distantPast
-    private var currentMessage: WellnessMessage?
+    var currentMessage: WellnessMessage?
     
     // Shared display state
     var isPromptActive: Bool = false
@@ -89,26 +89,52 @@ final class WellnessPromptProvider {
         // Progress moment: the short break immediately preceding the final session
         let isProgress = (context.currentSession == context.sessionsPerCycle - 1)
         
-        let messageText = isProgress ? progressBag.draw() : wellnessBag.draw()
-        let message = WellnessMessage(text: messageText, type: isProgress ? .progress : .wellness)
+        let wellnessText = isProgress ? progressBag.draw() : wellnessBag.draw()
+        let wellnessMessage = WellnessMessage(text: wellnessText, type: isProgress ? .progress : .wellness)
+        
+        var initialMessage = wellnessMessage
+        var hasAdaptive = false
+        
+        if let adaptive = context.adaptivePayload {
+            // Using a concise dot-separated format for optimal resizing
+            let text = "\(adaptive.totalWorkMinutes)m focus • +\(adaptive.extraBreakMinutes)m break"
+            initialMessage = WellnessMessage(text: text, type: .adaptiveBreak)
+            hasAdaptive = true
+        }
         
         // Update memoization state
         currentBreakSession = context.currentSession
         lastDrawTime = now
-        currentMessage = message
+        currentMessage = initialMessage
         
-        // Start the shared 25-second display timer
+        // Define timings
+        let totalDisplayDuration: UInt64 = 35_000_000_000 // 35 seconds
+        let adaptiveDisplayDuration: UInt64 = 7_000_000_000 // 7 seconds
+        
+        // Start the shared display sequence
         isPromptActive = true
         hideTask?.cancel()
-        hideTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 25_000_000_000)
-            if !Task.isCancelled {
+        hideTask = Task { @MainActor [weak self] in
+            if hasAdaptive {
+                try? await Task.sleep(nanoseconds: adaptiveDisplayDuration)
+                guard !Task.isCancelled else { return }
+                
                 withAnimation(.easeInOut(duration: 0.5)) {
-                    self.isPromptActive = false
+                    self?.currentMessage = wellnessMessage
                 }
+                
+                let remainingDuration = totalDisplayDuration - adaptiveDisplayDuration
+                try? await Task.sleep(nanoseconds: remainingDuration)
+            } else {
+                try? await Task.sleep(nanoseconds: totalDisplayDuration)
+            }
+            
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.5)) {
+                self?.isPromptActive = false
             }
         }
         
-        return message
+        return initialMessage
     }
 }
