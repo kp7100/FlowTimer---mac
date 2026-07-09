@@ -164,10 +164,6 @@ class ClickToEditTextField: NSTextField {
     }
     
     override func mouseDown(with event: NSEvent) {
-        if !NSApp.isActive {
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        
         if !isEditable {
             isEditable = true
             isSelectable = true

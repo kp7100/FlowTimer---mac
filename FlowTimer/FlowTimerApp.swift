@@ -14,17 +14,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         WindowManager.shared.timerManager = timerManager
         
-        WindowLifecycleObserver.shared.start()
-        
         if useNativeStatusItem {
-            StatusBarManager.shared.setup(timerManager: timerManager)
+            MenuBarPanelManager.shared.setup(timerManager: timerManager)
         }
         
         ShortcutDispatcher.shared.start()
         
-        // Spawn the main timer deterministically on launch
+
+        // Spawn the mini timer on launch
         DispatchQueue.main.async {
-            WindowManager.shared.showMainTimer()
+            WindowManager.shared.showMiniTimer()
         }
     }
 }
@@ -39,12 +38,12 @@ struct FlowTimerApp: App {
     
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(!useNativeStatusItem)) {
-            MenuBarPopoverView(timerManager: appDelegate.timerManager)
+            MenuBarPanelView(timerManager: appDelegate.timerManager)
         } label: {
             Text("\(appDelegate.timerManager.menuBarTitle)   [\(appDelegate.timerManager.remainingTimeFormatted)]")
                 .monospacedDigit()
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
-                    WindowManager.shared.showMainTimer()
+                    WindowManager.shared.showMiniTimer()
                 }
         }
         .menuBarExtraStyle(.window)

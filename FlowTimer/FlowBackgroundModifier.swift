@@ -6,7 +6,7 @@ struct AmbientBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: AmbientTheme.cornerRadius, style: .continuous)
                     .fill(theme.backgroundColor)
                     .animation(.easeInOut(duration: theme.animationDuration), value: theme.backgroundColor)
             )

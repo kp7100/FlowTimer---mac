@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct MenuBarPopoverView: View {
+struct MenuBarPanelView: View {
     @Bindable var timerManager: TimerManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
@@ -47,6 +47,7 @@ struct MenuBarPopoverView: View {
             Text(timerManager.remainingTimeFormatted)
                 .font(.system(size: 72, weight: .regular, design: .default))
                 .monospacedDigit()
+                .foregroundColor(currentTheme.timerTextColor)
                 .padding(.vertical, -4)
             
             // Session Progress
@@ -92,12 +93,14 @@ struct MenuBarPopoverView: View {
             }
             
             Divider()
+                .overlay(timerManager.phase == .flowExtension ? AmbientTheme.flowColor(isDarkMode: colorScheme == .dark).opacity(0.08) : Color.clear)
                 .padding(.horizontal, 16)
             
             // Secondary Actions
             VStack(spacing: 4) {
-                PopoverMenuItem(title: "Open Main Window") {
-                    WindowManager.shared.showMainTimer()
+                let isMiniTimerVisible = WindowManager.shared.miniPanel?.isVisible == true
+                PopoverMenuItem(title: isMiniTimerVisible ? "Hide Mini Timer" : "Show Mini Timer") {
+                    WindowManager.shared.toggleMiniTimer()
                     dismiss()
                 }
                 
@@ -119,7 +122,7 @@ struct MenuBarPopoverView: View {
         }
         .padding(.vertical, 16)
         .frame(width: 320)
-        .ambientTheme(currentTheme)
+        .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
     }
 }
 

@@ -26,7 +26,7 @@ struct PlayPauseButton: View {
                     .font(iconSize)
                     .foregroundColor(theme.buttonForeground)
                     .frame(width: size, height: size)
-                    .background(theme.buttonBackground)
+                    .background(theme.takeBreakButtonBackground)
                     .clipShape(Circle())
             } else {
                 Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")

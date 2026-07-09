@@ -11,6 +11,8 @@ struct AmbientTheme: Equatable {
     let buttonPressedBackground: Color
     let buttonForeground: Color
     
+    let takeBreakButtonBackground: Color
+    
     let activeDotColor: Color
     let inactiveDotColor: Color
     
@@ -20,7 +22,16 @@ struct AmbientTheme: Equatable {
     let menuBarPillBackground: Color
     let menuBarPillForeground: Color
     
+    let timerTextColor: Color
+    
     let animationDuration: Double
+    
+    static let cornerRadius: CGFloat = 12
+    static func flowColor(isDarkMode: Bool) -> Color {
+        return isDarkMode 
+            ? Color(red: 49/255, green: 93/255, blue: 233/255) // #315DE9
+            : Color(red: 59/255, green: 120/255, blue: 226/255) // #3B78E2
+    }
 
     static func current(for phase: TimerPhase, isDarkMode: Bool) -> AmbientTheme {
         switch phase {
@@ -34,37 +45,41 @@ struct AmbientTheme: Equatable {
                 buttonHoverBackground: .accentColor.opacity(0.85),
                 buttonPressedBackground: .accentColor.opacity(0.7),
                 buttonForeground: .white,
+                takeBreakButtonBackground: .accentColor,
                 activeDotColor: .accentColor,
                 inactiveDotColor: Color.secondary.opacity(0.3),
                 accentColor: .accentColor,
                 iconColor: .secondary,
                 menuBarPillBackground: isDarkMode ? .black : .white,
                 menuBarPillForeground: isDarkMode ? .white : .black,
+                timerTextColor: .primary,
                 animationDuration: 1.5
             )
             
         case .flowExtension:
-            let bgBlue = Color(red: 0.13, green: 0.20, blue: 0.29) // Deep slate blue
-            let buttonBlue = Color(red: 0.09, green: 0.15, blue: 0.23) // Darker button blue
-            let hoverBlue = Color(red: 0.07, green: 0.12, blue: 0.20)
-            let pressedBlue = Color(red: 0.05, green: 0.10, blue: 0.17)
-            let activeBlue = Color(red: 0.35, green: 0.65, blue: 0.95) // Brighter active blue
+            let flowColor = AmbientTheme.flowColor(isDarkMode: isDarkMode)
+            let buttonBlue = flowColor.opacity(0.92) // Pause button
+            let takeBreakBlue = flowColor.opacity(0.82) // Take Break button
+            let hoverBlue = flowColor.opacity(0.85)
+            let pressedBlue = flowColor.opacity(0.7)
             
             return AmbientTheme(
-                backgroundColor: bgBlue,
-                foregroundColor: .white,
-                secondaryForegroundColor: .white.opacity(0.85),
-                primaryColor: activeBlue,
+                backgroundColor: Color(NSColor.windowBackgroundColor),
+                foregroundColor: .primary,
+                secondaryForegroundColor: .secondary,
+                primaryColor: flowColor,
                 buttonBackground: buttonBlue,
                 buttonHoverBackground: hoverBlue,
                 buttonPressedBackground: pressedBlue,
                 buttonForeground: .white,
-                activeDotColor: activeBlue,
-                inactiveDotColor: .white.opacity(0.2),
-                accentColor: activeBlue,
-                iconColor: .white.opacity(0.8),
-                menuBarPillBackground: bgBlue,
+                takeBreakButtonBackground: takeBreakBlue,
+                activeDotColor: flowColor.opacity(0.78),
+                inactiveDotColor: flowColor.opacity(0.22),
+                accentColor: flowColor.opacity(0.88), // Tag selector
+                iconColor: flowColor.opacity(0.8),
+                menuBarPillBackground: flowColor,
                 menuBarPillForeground: .white,
+                timerTextColor: flowColor,
                 animationDuration: 1.5
             )
             
@@ -84,12 +99,14 @@ struct AmbientTheme: Equatable {
                 buttonHoverBackground: hoverTeal,
                 buttonPressedBackground: pressedTeal,
                 buttonForeground: .white,
+                takeBreakButtonBackground: buttonTeal,
                 activeDotColor: activeTeal,
                 inactiveDotColor: .white.opacity(0.2),
                 accentColor: activeTeal,
                 iconColor: .white.opacity(0.8),
                 menuBarPillBackground: bgTeal,
                 menuBarPillForeground: .white,
+                timerTextColor: .white,
                 animationDuration: 1.5
             )
             
@@ -109,12 +126,14 @@ struct AmbientTheme: Equatable {
                 buttonHoverBackground: hoverLongTeal,
                 buttonPressedBackground: pressedLongTeal,
                 buttonForeground: .white,
+                takeBreakButtonBackground: buttonLongTeal,
                 activeDotColor: activeLongTeal,
                 inactiveDotColor: .white.opacity(0.2),
                 accentColor: activeLongTeal,
                 iconColor: .white.opacity(0.8),
                 menuBarPillBackground: bgLongTeal,
                 menuBarPillForeground: .white,
+                timerTextColor: .white,
                 animationDuration: 1.5
             )
         }

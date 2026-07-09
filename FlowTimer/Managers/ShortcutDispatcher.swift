@@ -20,11 +20,11 @@ class ShortcutDispatcher {
         case .skipPhase:
             WindowManager.shared.timerManager?.skipCurrentPhase()
         case .toggleMainWindow:
-            StatusBarManager.shared.togglePopover(nil)
+            MenuBarPanelManager.shared.togglePanel(nil)
         case .toggleMiniWindow:
             WindowManager.shared.toggleMiniTimer()
         case .renameCurrentSession:
-            WindowManager.shared.showRenameSessionPanel()
+            break
         }
     }
 }

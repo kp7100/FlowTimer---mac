@@ -7,10 +7,9 @@ import Observation
 final class WindowManager {
     static let shared = WindowManager()
     
-    var mainPanel: FlowPanel?
+
     var miniPanel: FlowPanel?
     var settingsWindow: NSWindow?
-    @ObservationIgnored private var _renameSessionPanelController: RenameSessionPanelController?
     var timerManager: TimerManager?
     
     let framePersistence = WindowFramePersistence()
@@ -20,35 +19,7 @@ final class WindowManager {
         UserDefaults.standard.removeObject(forKey: "restorePosition")
     }
     
-    func showMainTimer() {
-        if let panel = mainPanel {
-            panel.makeKeyAndOrderFront(nil)
-            return
-        }
-        
-        guard let timerManager = timerManager else { return }
-        
-        let panel = makeHostingPanel(
-            rootView: ContentView(timerManager: timerManager),
-            autosaveName: "FlowTimer.MainTimer.Frame"
-        )
-        
-        self.mainPanel = panel
-        panel.makeKeyAndOrderFront(nil)
-    }
-    
-    func hideMainTimer() {
-        mainPanel?.orderOut(nil)
-    }
-    
-    func toggleMainTimer() {
-        if mainPanel?.isVisible == true {
-            hideMainTimer()
-        } else {
-            showMainTimer()
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    }
+
     
     private func makeHostingPanel<Content: View>(rootView: Content, autosaveName: String) -> FlowPanel {
         let panel = FlowPanel(
@@ -157,22 +128,6 @@ final class WindowManager {
         } else {
             showSettingsWindow()
         }
-    }
-    
-    private func getRenamePanelController() -> RenameSessionPanelController? {
-        guard let timerManager = timerManager else { return nil }
-        
-        if let controller = _renameSessionPanelController {
-            return controller
-        }
-        
-        let controller = RenameSessionPanelController(timerManager: timerManager)
-        _renameSessionPanelController = controller
-        return controller
-    }
-    
-    func showRenameSessionPanel() {
-        getRenamePanelController()?.show()
     }
 }
 class FlowPanel: NSPanel {

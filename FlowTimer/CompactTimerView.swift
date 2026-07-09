@@ -39,6 +39,7 @@ struct CompactTimerView: View {
                             Text(timerManager.remainingTimeFormatted)
                                 .font(.system(size: 48, weight: .regular, design: .default))
                                 .monospacedDigit()
+                                .foregroundColor(currentTheme.timerTextColor)
                         }
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
@@ -74,7 +75,7 @@ struct CompactTimerView: View {
         }
         .frame(width: 220, height: 112)
         .ignoresSafeArea()
-        .ambientTheme(currentTheme)
+        .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
         .onHover { hover in
             isHoveringWindow = hover
         }

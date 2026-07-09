@@ -23,6 +23,8 @@ final class TimerManager {
     var isRunning: Bool = false
     var state: TimerState = .idle
     var phase: TimerPhase = .work
+    var flowTransitionID: UUID?
+    private var hasTriggeredFlowTransition = false
     
     var flowExtensionElapsedSeconds: Double {
         guard phase == .flowExtension else { return 0 }
@@ -38,7 +40,7 @@ final class TimerManager {
         return tag.name
     }
     
-    var activeTag: String? { currentTag }
+
     
     private var currentPhaseStartDate: Date?
     var phaseStartDate: Date { currentPhaseStartDate ?? Date() }
@@ -141,9 +143,16 @@ final class TimerManager {
             onTick: { [weak self] remainingSeconds in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
+                    
+                    if self.phase == .work && remainingSeconds == 1 && !self.hasTriggeredFlowTransition {
+                        self.hasTriggeredFlowTransition = true
+                        self.flowTransitionID = UUID()
+                    }
+                    
                     if self.phase == .flowExtension {
                         self.currentPhaseDuration = remainingSeconds
-                        self.remainingTimeFormatted = "+\(TimeFormatter.format(seconds: remainingSeconds))"
+                        let displaySeconds = self.settingsManager.settings.workDuration + remainingSeconds
+                        self.remainingTimeFormatted = "+\(TimeFormatter.format(seconds: displaySeconds))"
                     } else {
                         self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
                     }
@@ -228,6 +237,7 @@ final class TimerManager {
             } else {
                 currentPhaseStartDate = Date()
                 currentPhaseDuration = 0
+                hasTriggeredFlowTransition = false
                 await engine.setPhase(.flowExtension, direction: .countup)
                 await engine.setDuration(0)
                 await engine.start()

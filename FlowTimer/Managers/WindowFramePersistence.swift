@@ -8,7 +8,7 @@ final class WindowFramePersistence {
     /// Registers a window for manual frame persistence.
     /// - Parameters:
     ///   - window: The window to manage.
-    ///   - persistenceKey: The UserDefaults key (e.g., "FlowTimer.MainTimer.Frame").
+    ///   - persistenceKey: The UserDefaults key (e.g., "FlowTimer.MiniTimer.Frame").
     func register(window: NSWindow, persistenceKey: String) {
         // 1. Restore frame if available and valid
         var didRestore = false
