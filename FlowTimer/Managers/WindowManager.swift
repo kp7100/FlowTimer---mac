@@ -10,6 +10,7 @@ final class WindowManager {
 
     var miniPanel: FlowPanel?
     var settingsWindow: NSWindow?
+    private var settingsWindowObserver: NSObjectProtocol?
     var timerManager: TimerManager?
     
     let framePersistence = WindowFramePersistence()
@@ -110,15 +111,17 @@ final class WindowManager {
         
         framePersistence.register(window: window, persistenceKey: "FlowTimer.Settings.Frame")
         
-        var token: NSObjectProtocol?
-        token = NotificationCenter.default.addObserver(
+        settingsWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.settingsWindow = nil
-            if let t = token {
-                NotificationCenter.default.removeObserver(t)
+            MainActor.assumeIsolated {
+                self?.settingsWindow = nil
+                if let observer = self?.settingsWindowObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self?.settingsWindowObserver = nil
+                }
             }
         }
         

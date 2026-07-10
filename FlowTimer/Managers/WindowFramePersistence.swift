@@ -38,18 +38,24 @@ final class WindowFramePersistence {
         
         // 2. Observe move and resize notifications
         let moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { [weak self, weak window] _ in
-            guard let window = window else { return }
-            self?.scheduleSave(for: window, key: persistenceKey)
+            MainActor.assumeIsolated {
+                guard let window = window else { return }
+                self?.scheduleSave(for: window, key: persistenceKey)
+            }
         }
         
         let resizeObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResizeNotification, object: window, queue: .main) { [weak self, weak window] _ in
-            guard let window = window else { return }
-            self?.scheduleSave(for: window, key: persistenceKey)
+            MainActor.assumeIsolated {
+                guard let window = window else { return }
+                self?.scheduleSave(for: window, key: persistenceKey)
+            }
         }
         
         // Clean up automatically when the window is completely deallocated/closed
         let closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
-            self?.unregister(windowId: windowId)
+            MainActor.assumeIsolated {
+                self?.unregister(windowId: windowId)
+            }
         }
         
         observers[windowId] = [moveObserver, resizeObserver, closeObserver]

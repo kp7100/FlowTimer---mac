@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 
 struct InlineEditableTitle: View {
-    @Binding var title: String
+    let displayTitle: String
+    @Binding var customTitle: String?
     
     // Customization properties
     var fontSize: CGFloat = 26
@@ -16,7 +17,8 @@ struct InlineEditableTitle: View {
     
     var body: some View {
         NativeInlineTextField(
-            text: $title,
+            displayTitle: displayTitle,
+            customTitle: $customTitle,
             fontSize: fontSize,
             fontWeight: fontWeight,
             alignment: alignment,
@@ -40,7 +42,8 @@ struct InlineEditableTitle: View {
 }
 
 struct NativeInlineTextField: NSViewRepresentable {
-    @Binding var text: String
+    let displayTitle: String
+    @Binding var customTitle: String?
     var fontSize: CGFloat
     var fontWeight: Font.Weight
     var alignment: TextAlignment
@@ -74,9 +77,10 @@ struct NativeInlineTextField: NSViewRepresentable {
         
         // CRITICAL FIX: Allow SwiftUI to squish the text field so native truncation can kick in
         textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        
+        textField.placeholderString = "What's your focus?"
         textField.onBeginEditing = {
             context.coordinator.draftText = textField.stringValue
+            textField.stringValue = self.customTitle ?? ""
             DispatchQueue.main.async {
                 self.isEditing = true
             }
@@ -87,8 +91,8 @@ struct NativeInlineTextField: NSViewRepresentable {
     
     func updateNSView(_ nsView: ClickToEditTextField, context: Context) {
         if !isEditing {
-            nsView.stringValue = text.isEmpty ? "What's your focus?" : text
-            nsView.textColor = text.isEmpty ? NSColor(secondaryForegroundColor) : NSColor(foregroundColor)
+            nsView.stringValue = displayTitle
+            nsView.textColor = NSColor(foregroundColor)
             nsView.lineBreakMode = .byTruncatingTail
         } else {
             nsView.lineBreakMode = .byClipping // Allows native scrolling without ellipsis while typing
@@ -134,7 +138,7 @@ struct NativeInlineTextField: NSViewRepresentable {
                 textField.isSelectable = false
                 
                 let newText = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                parent.text = newText
+                parent.customTitle = newText.isEmpty ? nil : newText
                 
                 DispatchQueue.main.async {
                     self.parent.isEditing = false

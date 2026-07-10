@@ -31,7 +31,7 @@ struct CompactTimerView: View {
                         .offset(y: -4) // Optically align baseline
                         
                         ZStack(alignment: .center) {
-                            Text("+00:00")
+                            Text("00:00")
                                 .font(.system(size: 48, weight: .regular, design: .default))
                                 .monospacedDigit()
                                 .hidden()

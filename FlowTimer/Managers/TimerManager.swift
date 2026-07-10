@@ -54,16 +54,20 @@ final class TimerManager {
     private var currentPhaseDuration: Int
     private var lastCheckpoint: Date = Date()
     
-    var sessionTitle: String = "Session 1" {
+    var customSessionTitle: String? {
         didSet {
-            let trimmed = sessionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty {
-                sessionTitle = "Session \(currentSession)"
-            } else if sessionTitle != trimmed {
-                sessionTitle = trimmed
+            let trimmed = customSessionTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed?.isEmpty == true {
+                customSessionTitle = nil
+            } else if customSessionTitle != trimmed {
+                customSessionTitle = trimmed
             }
             saveState()
         }
+    }
+    
+    var sessionTitle: String {
+        return customSessionTitle ?? "Session \(currentSession)"
     }
     
     var menuBarTitle: String {
@@ -89,11 +93,12 @@ final class TimerManager {
         return .coffee
     }
     
-    init(settingsManager: SettingsManager = .shared) {
-        self.settingsManager = settingsManager
-        self.currentPhaseDuration = settingsManager.settings.workDuration
-        self.remainingTimeFormatted = TimeFormatter.format(seconds: settingsManager.settings.workDuration)
-        self.engine = TimerEngine(durationInSeconds: settingsManager.settings.workDuration)
+    init(settingsManager: SettingsManager? = nil) {
+        let manager = settingsManager ?? .shared
+        self.settingsManager = manager
+        self.currentPhaseDuration = manager.settings.workDuration
+        self.remainingTimeFormatted = TimeFormatter.format(seconds: manager.settings.workDuration)
+        self.engine = TimerEngine(durationInSeconds: manager.settings.workDuration)
         
         
         Task { [weak self] in
@@ -101,11 +106,15 @@ final class TimerManager {
         }
         
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.pause()
+            MainActor.assumeIsolated {
+                self?.pause()
+            }
         }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.pause()
-            self?.saveState()
+            MainActor.assumeIsolated {
+                self?.pause()
+                self?.saveState()
+            }
         }
     }
     
@@ -117,7 +126,7 @@ final class TimerManager {
                 currentSession: currentSession,
                 currentPhaseStartDate: currentPhaseStartDate,
                 engineSnapshot: engineSnapshot,
-                sessionTitle: sessionTitle
+                sessionTitle: customSessionTitle
             )
             
             if let data = try? JSONEncoder().encode(snapshot) {
@@ -159,7 +168,7 @@ final class TimerManager {
                     if self.phase == .flowExtension {
                         self.currentPhaseDuration = remainingSeconds
                         let displaySeconds = self.settingsManager.settings.workDuration + remainingSeconds
-                        self.remainingTimeFormatted = "+\(TimeFormatter.format(seconds: displaySeconds))"
+                        self.remainingTimeFormatted = "\(TimeFormatter.format(seconds: displaySeconds))"
                     } else {
                         self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
                     }
@@ -213,9 +222,9 @@ final class TimerManager {
             self.currentSession = snapshot.currentSession
             self.currentPhaseStartDate = snapshot.currentPhaseStartDate
             if let savedTitle = snapshot.sessionTitle {
-                self.sessionTitle = savedTitle
+                self.customSessionTitle = savedTitle
             } else {
-                self.sessionTitle = "Session \(snapshot.currentSession)"
+                self.customSessionTitle = nil
             }
             await engine.restore(from: snapshot.engineSnapshot)
         } else {

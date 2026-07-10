@@ -57,7 +57,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
         
         let overlay = NSView(frame: contentView.bounds)
         overlay.wantsLayer = true
-        overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.25).cgColor
+        overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.45).cgColor
         overlay.autoresizingMask = [.width, .height]
         contentView.addSubview(overlay)
         
@@ -80,7 +80,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
         textField.drawsBackground = false
         textField.focusRingType = .none
         textField.delegate = self
-        textField.textColor = .white
+        textField.textColor = NSColor(white: 0.95, alpha: 1.0)
         textField.alignment = .center
         contentView.addSubview(textField)
         
@@ -93,16 +93,27 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 14),
             titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             
-            textField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            textField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
             textField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             textField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            textField.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -14)
+            textField.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
         ])
     }
     
     func show() {
-        textField.stringValue = ""
-        textField.placeholderString = ""
+        textField.stringValue = timerManager?.customSessionTitle ?? ""
+        
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        
+        textField.placeholderAttributedString = NSAttributedString(
+            string: "What's your focus?",
+            attributes: [
+                .foregroundColor: NSColor(white: 1.0, alpha: 0.35),
+                .font: NSFont.systemFont(ofSize: 26, weight: .regular),
+                .paragraphStyle: style
+            ]
+        )
         titleLabel.stringValue = "Edit Session Title"
         
         if let screen = NSEvent.mouseLocation.screen {
@@ -148,10 +159,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
     
     private func commit() {
         let trimmed = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            timerManager?.sessionTitle = trimmed
-        }
-        // If empty, we just leave the original title intact.
+        timerManager?.customSessionTitle = trimmed.isEmpty ? nil : trimmed
         hide()
     }
 }

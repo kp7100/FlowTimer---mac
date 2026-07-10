@@ -11,7 +11,11 @@ struct SharedSessionTitleView: View {
     var body: some View {
         if timerManager.phase == .work || timerManager.phase == .flowExtension {
             InlineEditableTitle(
-                title: $timerManager.sessionTitle,
+                displayTitle: timerManager.sessionTitle,
+                customTitle: Binding(
+                    get: { timerManager.customSessionTitle },
+                    set: { timerManager.customSessionTitle = $0 }
+                ),
                 fontSize: fontSize,
                 fontWeight: fontWeight,
                 alignment: alignment,

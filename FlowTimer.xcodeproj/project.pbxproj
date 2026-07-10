@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1BAB464492D2B33D0C703797 /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
-		24F7434EB7040DC70E27078C /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
-		277048A19D9349260D537F71 /* FlowCloseButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68B4FACA04100B0ADD9B6E2 /* FlowCloseButton.swift */; };
-		2A684B07A8D9597CF6FA513D /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
-		6002444381ABFDDF9CF84A1C /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
-		9E274FBFAF2AC4C94A0F9E48 /* RenameSessionPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497242A9A7EF6FF55C1E2F0E /* RenameSessionPanelController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -216,22 +210,16 @@
 		B9F5832A2FF7C3D7006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				9E274FBFAF2AC4C94A0F9E48 /* RenameSessionPanelController.swift in Sources */,
-				1BAB464492D2B33D0C703797 /* FlowCloseButton.swift in Sources */,
 			);
 		};
 		B9F583392FF7C3DA006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				2A684B07A8D9597CF6FA513D /* RenameSessionPanelController.swift in Sources */,
-				277048A19D9349260D537F71 /* FlowCloseButton.swift in Sources */,
 			);
 		};
 		B9F583432FF7C3DA006071AF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				6002444381ABFDDF9CF84A1C /* RenameSessionPanelController.swift in Sources */,
-				24F7434EB7040DC70E27078C /* FlowCloseButton.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
