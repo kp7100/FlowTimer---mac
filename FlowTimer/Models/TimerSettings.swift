@@ -11,7 +11,7 @@ struct TimerSettings: Codable, Equatable {
     var longBreakDuration: Int = 15 * 60
     var sessionsPerCycle: Int = 4
     
-    var autoStartBreaks: Bool = true
+    var flowExtensionLimit: Int? = nil
     var autoStartWork: Bool = true
     
     var launchAtLogin: Bool = false

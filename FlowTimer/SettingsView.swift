@@ -62,7 +62,9 @@ struct SettingsView: View {
             
             Section("Focus") {
                 Picker("Work Duration", selection: $settingsManager.settings.workDuration) {
+#if DEBUG
                     Text("30 sec (Test)").tag(30)
+#endif
                     ForEach(workOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }
@@ -71,14 +73,18 @@ struct SettingsView: View {
             
             Section("Breaks") {
                 Picker("Short Break", selection: $settingsManager.settings.shortBreakDuration) {
+#if DEBUG
                     Text("5 sec (Test)").tag(5)
+#endif
                     ForEach(shortBreakOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }
                 }
                 
                 Picker("Long Break", selection: $settingsManager.settings.longBreakDuration) {
+#if DEBUG
                     Text("10 sec (Test)").tag(10)
+#endif
                     ForEach(longBreakOptions, id: \.self) { min in
                         Text("\(min) min").tag(min * 60)
                     }
@@ -95,7 +101,13 @@ struct SettingsView: View {
             
             Section("Automation") {
                 Toggle("Launch at Login", isOn: $settingsManager.settings.launchAtLogin)
-                Toggle("Start Breaks Automatically", isOn: $settingsManager.settings.autoStartBreaks)
+                Picker("Flow Extension Limit", selection: $settingsManager.settings.flowExtensionLimit) {
+                    Text("Unlimited").tag(Int?.none)
+                    Text("15 min").tag(Optional(15))
+                    Text("30 min").tag(Optional(30))
+                    Text("45 min").tag(Optional(45))
+                    Text("60 min").tag(Optional(60))
+                }
                 Toggle("Start Focus Sessions Automatically", isOn: $settingsManager.settings.autoStartWork)
             }
             }
@@ -106,6 +118,19 @@ struct SettingsView: View {
         }
         .onChange(of: settingsManager.settings) { _, _ in
             timerManager.settingsDidChange()
+        }
+        .onAppear {
+#if !DEBUG
+            if !workOptions.contains(where: { $0 * 60 == settingsManager.settings.workDuration }) {
+                settingsManager.settings.workDuration = 25 * 60
+            }
+            if !shortBreakOptions.contains(where: { $0 * 60 == settingsManager.settings.shortBreakDuration }) {
+                settingsManager.settings.shortBreakDuration = 5 * 60
+            }
+            if !longBreakOptions.contains(where: { $0 * 60 == settingsManager.settings.longBreakDuration }) {
+                settingsManager.settings.longBreakDuration = 15 * 60
+            }
+#endif
         }
     }
 }

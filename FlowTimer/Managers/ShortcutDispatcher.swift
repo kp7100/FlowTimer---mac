@@ -14,17 +14,19 @@ class ShortcutDispatcher {
     }
     
     private func dispatch(action: ShortcutAction) {
-        switch action {
-        case .toggleTimer:
-            WindowManager.shared.timerManager?.toggleTimer()
-        case .skipPhase:
-            WindowManager.shared.timerManager?.skipCurrentPhase()
-        case .toggleMainWindow:
-            MenuBarPanelManager.shared.togglePanel(nil)
-        case .toggleMiniWindow:
-            WindowManager.shared.toggleMiniTimer()
-        case .renameCurrentSession:
-            WindowManager.shared.showRenameSessionPanel()
+        Task { @MainActor in
+            switch action {
+            case .toggleTimer:
+                WindowManager.shared.timerManager?.toggleTimer()
+            case .skipPhase:
+                WindowManager.shared.timerManager?.skipCurrentPhase()
+            case .toggleMainWindow:
+                MenuBarPanelManager.shared.togglePanel(nil)
+            case .toggleMiniWindow:
+                WindowManager.shared.toggleMiniTimer()
+            case .renameCurrentSession:
+                WindowManager.shared.showRenameSessionPanel()
+            }
         }
     }
 }

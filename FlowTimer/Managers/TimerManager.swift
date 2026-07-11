@@ -32,6 +32,7 @@ final class TimerManager {
     var flowTransitionID: UUID?
     var recentAdaptiveBreakPayload: AdaptiveBreakPayload?
     private var hasTriggeredFlowTransition = false
+    private var currentPhaseRemainingSeconds: Int = 0
     
     var flowExtensionElapsedSeconds: Double {
         guard phase == .flowExtension else { return 0 }
@@ -70,16 +71,64 @@ final class TimerManager {
         return customSessionTitle ?? "Session \(currentSession)"
     }
     
+    private func formatProgressDuration(_ seconds: TimeInterval) -> String {
+        let totalMinutes = Int((seconds / 60.0).rounded())
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        
+        if hours > 0 {
+            if minutes > 0 {
+                return "\(hours)h \(minutes)m"
+            } else {
+                return "\(hours)h"
+            }
+        } else {
+            return "\(totalMinutes)m"
+        }
+    }
+    
     var menuBarTitle: String {
         switch phase {
-        case .work:
-            return sessionTitle
         case .shortBreak:
             return "Short Break"
         case .longBreak:
             return "Long Break"
-        case .flowExtension:
-            return "Flow"
+        case .work, .flowExtension:
+            if state == .paused {
+                let completedWorkToday = HistoryManager.shared.focusTimeToday()
+                let completedFlowToday = HistoryManager.shared.flowExtensionToday()
+                let completedToday = completedWorkToday + completedFlowToday
+                
+                let currentElapsed: TimeInterval
+                if phase == .work {
+                    currentElapsed = TimeInterval(max(0, settings.workDuration - currentPhaseRemainingSeconds))
+                } else {
+                    currentElapsed = TimeInterval(max(0, currentPhaseDuration))
+                }
+                
+                let totalTodaySeconds = completedToday + currentElapsed
+                let hasFocusGoal = settings.goalsEnabled && settings.goalType == .focusTime
+                
+                if hasFocusGoal {
+                    let target = settings.goalFocusTime
+                    let remainingSeconds = target - totalTodaySeconds
+                    let remainingMinutes = Int((remainingSeconds / 60.0).rounded())
+                    
+                    if remainingMinutes > 0 {
+                        let remainingText = formatProgressDuration(remainingSeconds)
+                        let goalText = formatProgressDuration(target)
+                        return "\(remainingText) / \(goalText) left"
+                    } else {
+                        let focusedText = formatProgressDuration(totalTodaySeconds)
+                        return "Focused \(focusedText)"
+                    }
+                } else {
+                    let focusedText = formatProgressDuration(totalTodaySeconds)
+                    return "Focused \(focusedText)"
+                }
+            } else {
+                return sessionTitle
+            }
         }
     }
     
@@ -97,6 +146,7 @@ final class TimerManager {
         let manager = settingsManager ?? .shared
         self.settingsManager = manager
         self.currentPhaseDuration = manager.settings.workDuration
+        self.currentPhaseRemainingSeconds = manager.settings.workDuration
         self.remainingTimeFormatted = TimeFormatter.format(seconds: manager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: manager.settings.workDuration)
         
@@ -147,6 +197,7 @@ final class TimerManager {
                 case .flowExtension: duration = settings.workDuration
                 }
                 self.currentPhaseDuration = duration
+                self.currentPhaseRemainingSeconds = duration
                 await engine.setDuration(duration)
                 self.remainingTimeFormatted = TimeFormatter.format(seconds: duration)
             }
@@ -159,6 +210,7 @@ final class TimerManager {
             onTick: { [weak self] remainingSeconds in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
+                    self.currentPhaseRemainingSeconds = remainingSeconds
                     
                     if self.phase == .work && remainingSeconds == 1 && !self.hasTriggeredFlowTransition {
                         self.hasTriggeredFlowTransition = true
@@ -169,6 +221,13 @@ final class TimerManager {
                         self.currentPhaseDuration = remainingSeconds
                         let displaySeconds = self.settingsManager.settings.workDuration + remainingSeconds
                         self.remainingTimeFormatted = "\(TimeFormatter.format(seconds: displaySeconds))"
+                        
+                        if let limitMins = self.settings.flowExtensionLimit {
+                            let limitSeconds = limitMins * 60
+                            if remainingSeconds >= limitSeconds {
+                                self.takeBreak()
+                            }
+                        }
                     } else {
                         self.remainingTimeFormatted = TimeFormatter.format(seconds: remainingSeconds)
                     }
@@ -227,9 +286,11 @@ final class TimerManager {
                 self.customSessionTitle = nil
             }
             await engine.restore(from: snapshot.engineSnapshot)
+            self.currentPhaseRemainingSeconds = await engine.remainingSeconds
         } else {
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
+            self.currentPhaseRemainingSeconds = settings.workDuration
         }
         
         await engine.publishCurrentState()
@@ -241,19 +302,20 @@ final class TimerManager {
             if isSkip {
                 if currentSession >= totalSessions {
                     currentPhaseDuration = settings.longBreakDuration
+                    self.currentPhaseRemainingSeconds = settings.longBreakDuration
                     await engine.setPhase(.longBreak, direction: .countdown)
                     await engine.setDuration(settings.longBreakDuration)
                 } else {
                     currentPhaseDuration = settings.shortBreakDuration
+                    self.currentPhaseRemainingSeconds = settings.shortBreakDuration
                     await engine.setPhase(.shortBreak, direction: .countdown)
                     await engine.setDuration(settings.shortBreakDuration)
                 }
-                if settings.autoStartBreaks {
-                    self.start()
-                }
+                self.start()
             } else {
                 currentPhaseStartDate = Date()
                 currentPhaseDuration = 0
+                self.currentPhaseRemainingSeconds = 0
                 hasTriggeredFlowTransition = false
                 await engine.setPhase(.flowExtension, direction: .countup)
                 await engine.setDuration(0)
@@ -267,6 +329,7 @@ final class TimerManager {
                 currentSession = 1
             }
             currentPhaseDuration = settings.workDuration
+            self.currentPhaseRemainingSeconds = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
             
@@ -283,6 +346,7 @@ final class TimerManager {
                 let configuredBreakDuration = settings.longBreakDuration
                 
                 currentPhaseDuration = configuredBreakDuration
+                self.currentPhaseRemainingSeconds = configuredBreakDuration
                 await engine.setPhase(.longBreak, direction: .countdown)
                 await engine.setDuration(configuredBreakDuration)
             } else {
@@ -301,12 +365,11 @@ final class TimerManager {
                 }
                 
                 currentPhaseDuration = adaptiveBreakDuration
+                self.currentPhaseRemainingSeconds = adaptiveBreakDuration
                 await engine.setPhase(.shortBreak, direction: .countdown)
                 await engine.setDuration(adaptiveBreakDuration)
             }
-            if settings.autoStartBreaks {
-                self.start()
-            }
+            self.start()
         }
     }
     
@@ -414,6 +477,7 @@ final class TimerManager {
             currentSession = 1
             currentPhaseStartDate = nil
             currentPhaseDuration = settings.workDuration
+            self.currentPhaseRemainingSeconds = settings.workDuration
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
         }

@@ -21,6 +21,7 @@ Each entry should answer:
 * The timer does not stop at zero.
 * If you’re still focused, keep working.
 * FlowTimer automatically enters Flow Extension.
+* The controls are simplified during this state: the Pause button is removed, leaving only a centered "Take Break" button.
 * You decide when to stop.
 
 ---
@@ -42,7 +43,13 @@ Each entry should answer:
 ---
 
 ## Goals
-*(To be detailed when feature is implemented/refined)*
+
+**Status**: Refined / Live
+
+**Explain**:
+* Users can set daily goals (either Focus Time or Completed Sessions).
+* The menu bar displays progress on these goals when the timer is paused (e.g., showing remaining time like `1h 32m / 2h left` or total time like `Focused 2h 10m` once the goal is met).
+* This keeps users informed without needing to open the full app panel.
 
 ---
 
@@ -67,7 +74,13 @@ Each entry should answer:
 ---
 
 ## Menu Bar Mode
-*(To be detailed when feature is implemented/refined)*
+
+**Status**: Refined / Live
+
+**Explain**:
+* When active, the menu bar displays the current session title (or break phase) to maintain focus.
+* When paused, it switches to displaying goal progress to summarize the day's achievements.
+* Resuming immediately restores the session title context.
 
 ---
 

@@ -28,6 +28,7 @@ enum PanelState {
     case closing
 }
 
+@MainActor
 class MenuBarPanelManager: NSObject {
     static let shared = MenuBarPanelManager()
     
@@ -85,13 +86,12 @@ class MenuBarPanelManager: NSObject {
         guard let button = statusItem.button, let timerManager = timerManager else { return }
         
         let menuBarView = MenuBarStatusView(timerManager: timerManager) { [weak self] newWidth in
-            guard let self = self else { return }
-            guard abs(self.lastAppliedWidth - newWidth) > 0.5 else { return }
-            
-            self.lastAppliedWidth = newWidth
-            
-            DispatchQueue.main.async { [weak self] in
-                self?.statusItem.length = newWidth
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                guard abs(self.lastAppliedWidth - newWidth) > 0.5 else { return }
+                
+                self.lastAppliedWidth = newWidth
+                self.statusItem.length = newWidth
             }
         }
         
@@ -174,8 +174,10 @@ class MenuBarPanelManager: NSObject {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = 1.0
         }, completionHandler: { [weak self] in
-            guard let self = self, self.currentAnimationID == animationID else { return }
-            self.panelState = .open
+            Task { @MainActor in
+                guard let self = self, self.currentAnimationID == animationID else { return }
+                self.panelState = .open
+            }
         })
     }
     
@@ -189,11 +191,13 @@ class MenuBarPanelManager: NSObject {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = 0.0
         }, completionHandler: { [weak self] in
-            guard let self = self, self.currentAnimationID == animationID else { return }
-            
-            self.panel.orderOut(nil)
-            self.panel.contentViewController = nil
-            self.panelState = .closed
+            Task { @MainActor in
+                guard let self = self, self.currentAnimationID == animationID else { return }
+                
+                self.panel.orderOut(nil)
+                self.panel.contentViewController = nil
+                self.panelState = .closed
+            }
         })
     }
 }

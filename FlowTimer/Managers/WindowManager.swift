@@ -131,7 +131,7 @@ final class WindowManager {
     }
     
     func hideSettingsWindow() {
-        settingsWindow?.orderOut(nil)
+        settingsWindow?.close()
     }
     
     func toggleSettingsWindow() {

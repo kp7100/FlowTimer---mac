@@ -7,7 +7,6 @@ struct WindowControlsView: View {
     var onClose: (() -> Void)? = nil
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openWindow) private var openWindow
     
     @State private var isHoveringClose = false
     @State private var isHoveringMini = false

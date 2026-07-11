@@ -54,21 +54,16 @@ struct MenuBarPanelView: View {
             SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 12)
                 .padding(.bottom, 12)
             
-            // Controls
             if timerManager.phase == .flowExtension {
-                HStack(spacing: 16) {
-                    PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .title2)
-                    
-                    Button(action: {
-                        withAnimation {
-                            timerManager.takeBreak()
-                        }
-                    }) {
-                        Text("Take Break")
-                            .font(.subheadline)
+                Button(action: {
+                    withAnimation {
+                        timerManager.takeBreak()
                     }
-                    .buttonStyle(PrimaryAmbientButtonStyle())
+                }) {
+                    Text("Take Break")
+                        .font(.subheadline)
                 }
+                .buttonStyle(PrimaryAmbientButtonStyle())
                 .padding(.bottom, 16)
             } else {
                 HStack(spacing: 12) {
