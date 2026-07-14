@@ -62,11 +62,11 @@ struct MenuBarPanelView: View {
                         Image(systemName: "ellipsis.vertical")
                             .font(.system(size: 14))
                             .foregroundColor(currentTheme.secondaryForegroundColor)
+                            .frame(width: 20, height: 20)
                             .contentShape(Rectangle())
                     }
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
-                    .fixedSize()
                 }
             }
             .padding(.horizontal, 20)
