@@ -59,7 +59,7 @@ struct MenuBarPanelView: View {
                             NSApplication.shared.terminate(nil)
                         }
                     } label: {
-                        Image(systemName: "ellipsis.vertical")
+                        Image(systemName: "ellipsis")
                             .font(.system(size: 14))
                             .foregroundColor(currentTheme.secondaryForegroundColor)
                             .frame(width: 20, height: 20)
