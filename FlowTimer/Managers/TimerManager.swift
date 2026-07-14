@@ -33,10 +33,39 @@ final class TimerManager {
     var recentAdaptiveBreakPayload: AdaptiveBreakPayload?
     private var hasTriggeredFlowTransition = false
     private var currentPhaseRemainingSeconds: Int = 0
+    private var currentSessionPauseCount: Int = 0
+    
+    // Gap-check tracking
+    private var lastPausedAt: Date?
+    private var lastSessionFragmentID: UUID?
+    private var accumulatedDurationAtLastSplit: TimeInterval = 0
+    private let sessionSplitThresholdSeconds: TimeInterval = 300 // 5 minutes
     
     var flowExtensionElapsedSeconds: Double {
         guard phase == .flowExtension else { return 0 }
         return Double(currentPhaseDuration)
+    }
+    
+    var activeSessionRecord: SessionRecord? {
+        guard let startDate = currentPhaseStartDate else { return nil }
+        guard phase == .work || phase == .flowExtension else { return nil }
+        
+        let elapsed: TimeInterval
+        if phase == .work {
+            elapsed = TimeInterval(max(0, currentPhaseDuration - currentPhaseRemainingSeconds))
+        } else {
+            elapsed = TimeInterval(max(0, currentPhaseDuration))
+        }
+        
+        return SessionRecord(
+            id: phaseInstanceID,
+            phase: phase,
+            startDate: startDate,
+            endDate: Date(),
+            duration: elapsed,
+            tag: currentTag,
+            pauseCount: currentSessionPauseCount
+        )
     }
     
     var currentSession: Int = 1
@@ -101,29 +130,21 @@ final class TimerManager {
                 
                 let currentElapsed: TimeInterval
                 if phase == .work {
-                    currentElapsed = TimeInterval(max(0, settings.workDuration - currentPhaseRemainingSeconds))
+                    currentElapsed = TimeInterval(max(0, currentPhaseDuration - currentPhaseRemainingSeconds))
                 } else {
                     currentElapsed = TimeInterval(max(0, currentPhaseDuration))
                 }
                 
                 let totalTodaySeconds = completedToday + currentElapsed
-                let hasFocusGoal = settings.goalsEnabled && settings.goalType == .focusTime
                 
-                if hasFocusGoal {
+                if settings.goalsEnabled {
                     let target = settings.goalFocusTime
-                    let remainingSeconds = target - totalTodaySeconds
-                    let remainingMinutes = Int((remainingSeconds / 60.0).rounded())
-                    
-                    if remainingMinutes > 0 {
-                        let remainingText = formatProgressDuration(remainingSeconds)
-                        let goalText = formatProgressDuration(target)
-                        return "\(remainingText) / \(goalText) left"
-                    } else {
-                        let focusedText = formatProgressDuration(totalTodaySeconds)
-                        return "Focused \(focusedText)"
-                    }
+                    let completed = totalTodaySeconds >= target
+                    let completedText = TimeFormatter.formatForStats(seconds: totalTodaySeconds)
+                    let goalText = TimeFormatter.formatForStats(seconds: target)
+                    return completed ? "\(completedText) / \(goalText) ✓" : "\(completedText) / \(goalText)"
                 } else {
-                    let focusedText = formatProgressDuration(totalTodaySeconds)
+                    let focusedText = TimeFormatter.formatForStats(seconds: totalTodaySeconds)
                     return "Focused \(focusedText)"
                 }
             } else {
@@ -156,14 +177,35 @@ final class TimerManager {
         }
         
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
+            Task { @MainActor [weak self] in
                 self?.pause()
             }
         }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleWake()
+            }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
+            Task { @MainActor [weak self] in
                 self?.pause()
                 self?.saveState()
+            }
+        }
+        NotificationCenter.default.addObserver(forName: Notification.Name("timerSettingsDidChange"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.settingsDidChange()
+            }
+        }
+    }
+    
+    private func handleWake() {
+        Task { [weak self] in
+            guard let self else { return }
+            if let pauseTime = self.lastPausedAt {
+                let now = Date()
+                await self.processPauseGap(pauseTime: pauseTime, resumeTime: now)
+                self.lastPausedAt = now
             }
         }
     }
@@ -176,7 +218,10 @@ final class TimerManager {
                 currentSession: currentSession,
                 currentPhaseStartDate: currentPhaseStartDate,
                 engineSnapshot: engineSnapshot,
-                sessionTitle: customSessionTitle
+                sessionTitle: customSessionTitle,
+                lastPausedAt: lastPausedAt,
+                lastSessionFragmentID: lastSessionFragmentID,
+                accumulatedDurationAtLastSplit: accumulatedDurationAtLastSplit
             )
             
             if let data = try? JSONEncoder().encode(snapshot) {
@@ -186,20 +231,27 @@ final class TimerManager {
     }
     
     func settingsDidChange() {
-        if state == .idle {
-            Task { [weak self] in
-                guard let self else { return }
-                let duration: Int
-                switch phase {
-                case .work: duration = settings.workDuration
-                case .shortBreak: duration = settings.shortBreakDuration
-                case .longBreak: duration = settings.longBreakDuration
-                case .flowExtension: duration = settings.workDuration
-                }
-                self.currentPhaseDuration = duration
-                self.currentPhaseRemainingSeconds = duration
-                await engine.setDuration(duration)
-                self.remainingTimeFormatted = TimeFormatter.format(seconds: duration)
+        Task { [weak self] in
+            guard let self else { return }
+            
+            // Only apply settings to the current session if it hasn't started yet.
+            guard self.state == .idle else { return }
+            
+            let duration: Int
+            switch self.phase {
+            case .work: duration = self.settings.workDuration
+            case .shortBreak: duration = self.settings.shortBreakDuration
+            case .longBreak: duration = self.settings.longBreakDuration
+            case .flowExtension: duration = self.settings.workDuration
+            }
+            
+            if duration != self.currentPhaseDuration {
+                await self.engine.updateDuration(duration)
+                let newRemaining = await self.engine.remainingSeconds
+                self.currentPhaseDuration = await self.engine.totalSeconds
+                self.currentPhaseRemainingSeconds = newRemaining
+                self.remainingTimeFormatted = TimeFormatter.format(seconds: newRemaining)
+                self.saveState()
             }
         }
     }
@@ -222,8 +274,7 @@ final class TimerManager {
                         let displaySeconds = self.settingsManager.settings.workDuration + remainingSeconds
                         self.remainingTimeFormatted = "\(TimeFormatter.format(seconds: displaySeconds))"
                         
-                        if let limitMins = self.settings.flowExtensionLimit {
-                            let limitSeconds = limitMins * 60
+                        if let limitSeconds = self.settings.flowExtensionLimit {
                             if remainingSeconds >= limitSeconds {
                                 self.takeBreak()
                             }
@@ -285,8 +336,34 @@ final class TimerManager {
             } else {
                 self.customSessionTitle = nil
             }
+            self.lastPausedAt = snapshot.lastPausedAt
+            self.lastSessionFragmentID = snapshot.lastSessionFragmentID
+            self.accumulatedDurationAtLastSplit = snapshot.accumulatedDurationAtLastSplit ?? 0
+            
             await engine.restore(from: snapshot.engineSnapshot)
+            
+            let currentSettingDuration: Int
+            switch self.phase {
+            case .work: currentSettingDuration = settings.workDuration
+            case .shortBreak: currentSettingDuration = settings.shortBreakDuration
+            case .longBreak: currentSettingDuration = settings.longBreakDuration
+            case .flowExtension: currentSettingDuration = settings.workDuration
+            }
+            
+            // Only update the restored session's duration if it hasn't actually started yet
+            if snapshot.engineSnapshot.state == .idle && currentSettingDuration != snapshot.engineSnapshot.totalSeconds {
+                await engine.updateDuration(currentSettingDuration)
+            }
+            
+            self.currentPhaseDuration = await engine.totalSeconds
             self.currentPhaseRemainingSeconds = await engine.remainingSeconds
+            self.remainingTimeFormatted = TimeFormatter.format(seconds: self.currentPhaseRemainingSeconds)
+            
+            if let pauseTime = self.lastPausedAt {
+                let now = Date()
+                await self.processPauseGap(pauseTime: pauseTime, resumeTime: now)
+                self.lastPausedAt = now
+            }
         } else {
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
@@ -297,6 +374,10 @@ final class TimerManager {
     }
     
     private func advanceToNextPhase(isSkip: Bool = false) async {
+        lastPausedAt = nil
+        lastSessionFragmentID = nil
+        accumulatedDurationAtLastSplit = 0
+        
         switch phase {
         case .work:
             if isSkip {
@@ -316,6 +397,7 @@ final class TimerManager {
                 currentPhaseStartDate = Date()
                 currentPhaseDuration = 0
                 self.currentPhaseRemainingSeconds = 0
+                self.currentSessionPauseCount = 0
                 hasTriggeredFlowTransition = false
                 await engine.setPhase(.flowExtension, direction: .countup)
                 await engine.setDuration(0)
@@ -374,22 +456,36 @@ final class TimerManager {
     }
     
     private func handlePhaseCompletion() {
-        if let startDate = currentPhaseStartDate {
-            let record = SessionRecord(
-                id: UUID(),
-                phase: phase,
-                startDate: startDate,
-                endDate: Date(),
-                duration: TimeInterval(currentPhaseDuration),
-                tag: (phase == .work || phase == .flowExtension) ? currentTag : nil
-            )
-            HistoryManager.shared.addSession(record)
-        }
-        currentPhaseStartDate = nil
-        
         Task { [weak self] in
             guard let self else { return }
-            switch phase {
+            let engineSnapshot = await engine.snapshot()
+            
+            if let startDate = self.currentPhaseStartDate {
+                let fragmentDuration = engineSnapshot.accumulatedSeconds - self.accumulatedDurationAtLastSplit
+                let isFocusPhase = (self.phase == .work || self.phase == .flowExtension)
+                let finalDuration = isFocusPhase ? fragmentDuration : TimeInterval(self.currentPhaseDuration)
+                
+                if finalDuration > 0 {
+                    let record = SessionRecord(
+                        id: UUID(),
+                        phase: self.phase,
+                        startDate: startDate,
+                        endDate: Date(),
+                        duration: finalDuration,
+                        tag: isFocusPhase ? self.currentTag : nil,
+                        pauseCount: self.currentSessionPauseCount,
+                        continuationOf: self.lastSessionFragmentID
+                    )
+                    HistoryManager.shared.addSession(record)
+                }
+            }
+            
+            self.currentPhaseStartDate = nil
+            self.lastPausedAt = nil
+            self.lastSessionFragmentID = nil
+            self.accumulatedDurationAtLastSplit = 0
+            
+            switch self.phase {
             case .work:
                 NotificationManager.shared.sendNotification(
                     title: "Work Session Complete",
@@ -401,7 +497,7 @@ final class TimerManager {
                 break
             }
             
-            await advanceToNextPhase(isSkip: false)
+            await self.advanceToNextPhase(isSkip: false)
         }
     }
     
@@ -410,25 +506,38 @@ final class TimerManager {
             guard let self else { return }
             await engine.pause()
             
-            if let startDate = currentPhaseStartDate {
+            if let pauseTime = self.lastPausedAt {
+                await self.processPauseGap(pauseTime: pauseTime, resumeTime: Date())
+            }
+            
+            let engineSnapshot = await engine.snapshot()
+            let fragmentDuration = engineSnapshot.accumulatedSeconds - self.accumulatedDurationAtLastSplit
+            
+            if let startDate = currentPhaseStartDate, fragmentDuration > 0 {
                 let record = SessionRecord(
                     id: UUID(),
                     phase: .flowExtension,
                     startDate: startDate,
                     endDate: Date(),
-                    duration: TimeInterval(currentPhaseDuration),
-                    tag: currentTag
+                    duration: fragmentDuration,
+                    tag: currentTag,
+                    pauseCount: currentSessionPauseCount,
+                    continuationOf: lastSessionFragmentID
                 )
                 HistoryManager.shared.addSession(record)
             }
-            currentPhaseStartDate = nil
+            
+            self.currentPhaseStartDate = nil
+            self.lastPausedAt = nil
+            self.lastSessionFragmentID = nil
+            self.accumulatedDurationAtLastSplit = 0
             
             NotificationManager.shared.sendNotification(
                 title: "Flow Extension Complete",
                 body: "Starting your break."
             )
             
-            await advanceToNextPhase(isSkip: false)
+            await self.advanceToNextPhase(isSkip: false)
         }
     }
     
@@ -453,13 +562,51 @@ final class TimerManager {
     func start() {
         if currentPhaseStartDate == nil {
             currentPhaseStartDate = Date()
+            currentSessionPauseCount = 0
         }
         Task { [weak self] in
             await self?.engine.start()
         }
     }
     
+    private func processPauseGap(pauseTime: Date, resumeTime: Date) async {
+        guard phase == .work || phase == .flowExtension else { return }
+        guard let phaseStart = currentPhaseStartDate else { return }
+        
+        let gap = resumeTime.timeIntervalSince(pauseTime)
+        guard gap >= sessionSplitThresholdSeconds else { return }
+        
+        let engineSnapshot = await engine.snapshot()
+        let fragmentDuration = engineSnapshot.accumulatedSeconds - accumulatedDurationAtLastSplit
+        
+        if fragmentDuration > 0 {
+            let currentID = UUID()
+            let record = SessionRecord(
+                id: currentID,
+                phase: phase,
+                startDate: phaseStart,
+                endDate: pauseTime,
+                duration: fragmentDuration,
+                tag: currentTag,
+                pauseCount: currentSessionPauseCount,
+                continuationOf: lastSessionFragmentID
+            )
+            HistoryManager.shared.addSession(record)
+            lastSessionFragmentID = currentID
+        }
+        
+        // Begin the new segment
+        currentPhaseStartDate = resumeTime
+        accumulatedDurationAtLastSplit = engineSnapshot.accumulatedSeconds
+        currentSessionPauseCount = 0
+    }
     func pause() {
+        if state == .running {
+            currentSessionPauseCount += 1
+            if lastPausedAt == nil {
+                lastPausedAt = Date()
+            }
+        }
         Task { [weak self] in
             await self?.engine.pause()
         }
@@ -467,7 +614,12 @@ final class TimerManager {
     
     func resume() {
         Task { [weak self] in
-            await self?.engine.resume()
+            guard let self else { return }
+            if let pauseTime = self.lastPausedAt {
+                await self.processPauseGap(pauseTime: pauseTime, resumeTime: Date())
+                self.lastPausedAt = nil
+            }
+            await self.engine.resume()
         }
     }
     
@@ -478,6 +630,9 @@ final class TimerManager {
             currentPhaseStartDate = nil
             currentPhaseDuration = settings.workDuration
             self.currentPhaseRemainingSeconds = settings.workDuration
+            self.lastPausedAt = nil
+            self.lastSessionFragmentID = nil
+            self.accumulatedDurationAtLastSplit = 0
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
         }

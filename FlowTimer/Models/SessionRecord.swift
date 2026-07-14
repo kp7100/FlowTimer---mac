@@ -7,4 +7,8 @@ struct SessionRecord: Identifiable, Codable {
     let endDate: Date
     let duration: TimeInterval
     let tag: String?
+    let pauseCount: Int?
+    var continuationOf: UUID?
+    
+    var pauses: Int { pauseCount ?? 0 }
 }

@@ -5,7 +5,7 @@ struct DoubleWaveShape: Shape {
     var rightProgress: CGFloat
     var phase: CGFloat
     
-    var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, CGFloat> {
+    nonisolated var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, CGFloat> {
         get { AnimatablePair(AnimatablePair(leftProgress, rightProgress), phase) }
         set { 
             leftProgress = newValue.first.first
@@ -14,7 +14,7 @@ struct DoubleWaveShape: Shape {
         }
     }
     
-    func path(in rect: CGRect) -> Path {
+    nonisolated func path(in rect: CGRect) -> Path {
         var path = Path()
         
         let amplitude: CGFloat = 12.0

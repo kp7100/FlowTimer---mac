@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 class MenuBarPanel: NSPanel {
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
@@ -19,6 +20,12 @@ class MenuBarPanel: NSPanel {
     override var canBecomeKey: Bool {
         return true
     }
+    
+    override func cancelOperation(_ sender: Any?) {
+        MenuBarPanelManager.shared.hidePanel()
+    }
+    
+
 }
 
 enum PanelState {
@@ -46,8 +53,15 @@ class MenuBarPanelManager: NSObject {
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(panelDidResignKey),
+            selector: #selector(windowDidResignKey),
             name: NSWindow.didResignKeyNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidResignActive),
+            name: NSApplication.didResignActiveNotification,
             object: nil
         )
     }
@@ -76,11 +90,6 @@ class MenuBarPanelManager: NSObject {
         updateHostingView()
     }
     
-    deinit {
-        if let statusItem = statusItem {
-            NSStatusBar.system.removeStatusItem(statusItem)
-        }
-    }
     
     private func updateHostingView() {
         guard let button = statusItem.button, let timerManager = timerManager else { return }
@@ -110,10 +119,21 @@ class MenuBarPanelManager: NSObject {
         ])
     }
     
-    @objc private func panelDidResignKey(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, window == panel else { return }
+    @objc private func windowDidResignKey(_ notification: Notification) {
+        guard panelState == .open || panelState == .opening else { return }
         
-        // Hide panel when it loses key status (e.g. clicking outside)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard self.panelState == .open || self.panelState == .opening else { return }
+            
+            let keyWindow = NSApp.keyWindow
+            if !NSApp.isActive || (keyWindow != self.panel && keyWindow != self.panel?.attachedSheet) {
+                self.hidePanel()
+            }
+        }
+    }
+    
+    @objc private func applicationDidResignActive(_ notification: Notification) {
         if panelState == .open || panelState == .opening {
             hidePanel()
         }

@@ -15,4 +15,8 @@ struct TimerSnapshot: Codable {
     let currentPhaseStartDate: Date?
     let engineSnapshot: EngineSnapshot
     var sessionTitle: String?
+    
+    var lastPausedAt: Date?
+    var lastSessionFragmentID: UUID?
+    var accumulatedDurationAtLastSplit: TimeInterval?
 }

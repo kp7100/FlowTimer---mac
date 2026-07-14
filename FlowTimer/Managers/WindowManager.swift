@@ -9,8 +9,12 @@ final class WindowManager {
     
 
     var miniPanel: FlowPanel?
-    var settingsWindow: NSWindow?
-    private var settingsWindowObserver: NSObjectProtocol?
+    var manageTagsWindow: NSWindow?
+    private var manageTagsWindowObserver: NSObjectProtocol?
+    var statisticsWindow: NSWindow?
+    private var statisticsWindowObserver: NSObjectProtocol?
+    var customDurationsWindow: NSWindow?
+    private var customDurationsWindowObserver: NSObjectProtocol?
     var timerManager: TimerManager?
     
     let framePersistence = WindowFramePersistence()
@@ -78,8 +82,54 @@ final class WindowManager {
         }
     }
     
-    func showSettingsWindow() {
-        if let window = settingsWindow {
+    func showManageTagsWindow() {
+        if let window = manageTagsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let manageTagsView = ManageTagsView()
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 450, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Manage Tags"
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 400, height: 400)
+        window.center()
+        
+        let hostingController = NSHostingController(rootView: manageTagsView)
+        window.contentViewController = hostingController
+        
+        framePersistence.register(window: window, persistenceKey: "FlowTimer.ManageTags.Frame")
+        
+        manageTagsWindowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.manageTagsWindow = nil
+                if let observer = self?.manageTagsWindowObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self?.manageTagsWindowObserver = nil
+                }
+            }
+        }
+        
+        self.manageTagsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    func showStatisticsWindow() {
+        if let window = statisticsWindow {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -87,59 +137,97 @@ final class WindowManager {
         
         guard let timerManager = timerManager else { return }
         
-        let settingsView = TabView {
-            SettingsView(settingsManager: .shared, timerManager: timerManager)
-                .tabItem { Label("Settings", systemImage: "gear") }
-            
-            StatisticsView()
-                .tabItem { Label("Statistics", systemImage: "chart.bar.fill") }
-        }
+        let statisticsView = StatisticsView(timerManager: timerManager)
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 450, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = "Settings"
+        window.title = "Statistics"
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 400, height: 400)
+        window.minSize = NSSize(width: 500, height: 500)
         window.center()
         
-        let hostingController = NSHostingController(rootView: settingsView)
+        let hostingController = NSHostingController(rootView: statisticsView)
         window.contentViewController = hostingController
         
-        framePersistence.register(window: window, persistenceKey: "FlowTimer.Settings.Frame")
+        framePersistence.register(window: window, persistenceKey: "FlowTimer.Statistics.Frame")
         
-        settingsWindowObserver = NotificationCenter.default.addObserver(
+        statisticsWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.settingsWindow = nil
-                if let observer = self?.settingsWindowObserver {
+                self?.statisticsWindow = nil
+                if let observer = self?.statisticsWindowObserver {
                     NotificationCenter.default.removeObserver(observer)
-                    self?.settingsWindowObserver = nil
+                    self?.statisticsWindowObserver = nil
                 }
             }
         }
         
-        self.settingsWindow = window
+        self.statisticsWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
     
-    func hideSettingsWindow() {
-        settingsWindow?.close()
+    func showCustomDurationsWindow() {
+        if let window = customDurationsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let customDurationsView = CustomDurationsView()
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 450),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = ""
+        window.titlebarAppearsTransparent = true
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isReleasedWhenClosed = false
+        window.center()
+        
+        let hostingController = NSHostingController(rootView: customDurationsView)
+        window.contentViewController = hostingController
+        
+        framePersistence.register(window: window, persistenceKey: "FlowTimer.CustomDurations.Frame")
+        
+        customDurationsWindowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.customDurationsWindow = nil
+                if let observer = self?.customDurationsWindowObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self?.customDurationsWindowObserver = nil
+                }
+            }
+        }
+        
+        self.customDurationsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
-    func toggleSettingsWindow() {
-        if settingsWindow?.isVisible == true {
-            hideSettingsWindow()
-        } else {
-            showSettingsWindow()
-        }
+    func hideCustomDurationsWindow() {
+        customDurationsWindow?.close()
+    }
+    
+    func hideManageTagsWindow() {
+        manageTagsWindow?.close()
     }
 }
 class FlowPanel: NSPanel {

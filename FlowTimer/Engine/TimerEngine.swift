@@ -81,6 +81,13 @@ actor TimerEngine {
         publishTick()
     }
     
+    func updateDuration(_ seconds: Int) {
+        let elapsed = self.elapsedSeconds
+        self.totalSeconds = max(elapsed, seconds) // Prevent total duration from being less than elapsed
+        self.targetDuration = .seconds(self.totalSeconds)
+        publishTick()
+    }
+    
     func start() {
         guard state == .idle || state == .paused else { return }
         state = .running

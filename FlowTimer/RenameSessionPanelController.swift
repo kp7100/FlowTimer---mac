@@ -7,6 +7,7 @@ class RenameSessionPanel: NSPanel {
     }
 }
 
+@MainActor
 class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDelegate {
     private let panel: RenameSessionPanel
     private let textField = NSTextField()

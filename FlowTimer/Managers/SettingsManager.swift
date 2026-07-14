@@ -13,6 +13,7 @@ final class SettingsManager {
             if oldValue.launchAtLogin != settings.launchAtLogin {
                 syncLaunchAtLogin()
             }
+            NotificationCenter.default.post(name: Notification.Name("timerSettingsDidChange"), object: nil)
         }
     }
     

@@ -7,6 +7,7 @@ import SwiftUI
 
 let useNativeStatusItem = true
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let timerManager = TimerManager()
     

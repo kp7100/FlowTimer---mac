@@ -118,23 +118,23 @@ final class HistoryManager {
     
     // Session Counts
     func completedWorkSessionsToday() -> Int {
-        sessions(in: todayInterval, phase: .work).count
+        sessions(in: todayInterval, phase: .work).filter { $0.continuationOf == nil }.count
     }
     
     func sessionsYesterday() -> Int {
-        sessions(in: yesterdayInterval, phase: .work).count
+        sessions(in: yesterdayInterval, phase: .work).filter { $0.continuationOf == nil }.count
     }
     
     func completedWorkSessionsThisWeek() -> Int {
-        sessions(in: weekInterval, phase: .work).count
+        sessions(in: weekInterval, phase: .work).filter { $0.continuationOf == nil }.count
     }
     
     func completedWorkSessionsThisMonth() -> Int {
-        sessions(in: monthInterval, phase: .work).count
+        sessions(in: monthInterval, phase: .work).filter { $0.continuationOf == nil }.count
     }
     
     func totalCompletedWorkSessions() -> Int {
-        sessions(phase: .work).count
+        sessions(phase: .work).filter { $0.continuationOf == nil }.count
     }
     
     // Tag Queries
@@ -147,7 +147,7 @@ final class HistoryManager {
     }
     
     func completedSessions(for tag: Tag) -> Int {
-        sessions(for: tag).filter { $0.phase == .work }.count
+        sessions(for: tag).filter { $0.phase == .work && $0.continuationOf == nil }.count
     }
     
     func topTags(limit: Int = 3) -> [(String, TimeInterval)] {

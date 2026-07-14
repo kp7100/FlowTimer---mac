@@ -108,7 +108,7 @@ final class WellnessPromptProvider {
         currentMessage = initialMessage
         
         // Define timings
-        let totalDisplayDuration: UInt64 = 35_000_000_000 // 35 seconds
+        let totalDisplayDuration: UInt64 = 50_000_000_000 // 50 seconds
         let adaptiveDisplayDuration: UInt64 = 7_000_000_000 // 7 seconds
         
         // Start the shared display sequence

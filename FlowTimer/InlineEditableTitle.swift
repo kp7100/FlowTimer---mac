@@ -121,28 +121,57 @@ struct NativeInlineTextField: NSViewRepresentable {
     class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: NativeInlineTextField
         var draftText = ""
+        weak var editingTextField: NSTextField?
         
         init(_ parent: NativeInlineTextField) {
             self.parent = parent
+            super.init()
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(focusLost),
+                name: NSWindow.didResignKeyNotification,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(focusLost),
+                name: NSApplication.didResignActiveNotification,
+                object: nil
+            )
+        }
+        
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
         
         func controlTextDidBeginEditing(_ obj: Notification) {
             if let textField = obj.object as? NSTextField {
+                self.editingTextField = textField
                 textField.textColor = NSColor(parent.foregroundColor)
             }
         }
         
         func controlTextDidEndEditing(_ obj: Notification) {
-            if let textField = obj.object as? NSTextField {
-                textField.isEditable = false
-                textField.isSelectable = false
-                
-                let newText = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                parent.customTitle = newText.isEmpty ? nil : newText
-                
-                DispatchQueue.main.async {
-                    self.parent.isEditing = false
-                }
+            endEditing(obj.object as? NSTextField)
+        }
+        
+        @objc func focusLost(_ notification: Notification) {
+            if parent.isEditing, let textField = editingTextField {
+                textField.window?.makeFirstResponder(nil)
+                endEditing(textField)
+            }
+        }
+        
+        private func endEditing(_ textField: NSTextField?) {
+            guard let textField = textField else { return }
+            textField.isEditable = false
+            textField.isSelectable = false
+            
+            let newText = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            parent.customTitle = newText.isEmpty ? nil : newText
+            
+            DispatchQueue.main.async {
+                self.parent.isEditing = false
             }
         }
         

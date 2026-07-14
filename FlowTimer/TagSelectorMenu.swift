@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct TagSelectorMenu: View {
-    @Bindable var settingsManager = SettingsManager.shared
+    @Binding var selectedTagId: UUID?
     @Bindable var tagManager = TagManager.shared
     @Environment(\.ambientTheme) var currentTheme
     
     var body: some View {
-        let hasTag = settingsManager.settings.selectedTagId != nil
+        let hasTag = selectedTagId != nil
         Menu {
-            Picker("Selected Tag", selection: $settingsManager.settings.selectedTagId) {
+            Picker("Selected Tag", selection: $selectedTagId) {
                 Text("None").tag(UUID?.none)
                 Divider()
                 ForEach(tagManager.tags) { tag in
