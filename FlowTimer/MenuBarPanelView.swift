@@ -65,8 +65,7 @@ struct MenuBarPanelView: View {
                             .frame(width: 20, height: 20)
                             .contentShape(Rectangle())
                     }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 20)

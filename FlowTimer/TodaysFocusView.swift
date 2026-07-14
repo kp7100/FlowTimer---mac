@@ -215,11 +215,18 @@ struct FocusTaskInputRowView: View {
                 .frame(width: 20, height: 20)
             
             if isEditing {
-                TextField(placeholder, text: $inputText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .foregroundColor(theme.foregroundColor)
-                    .focused($isFocused)
+                ZStack(alignment: .leading) {
+                    if inputText.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: 14))
+                            .foregroundColor(theme.secondaryForegroundColor.opacity(0.5))
+                    }
+                    TextField("", text: $inputText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.foregroundColor)
+                        .focused($isFocused)
+                }
                     .onReceive(NotificationCenter.default.publisher(for: NSTextField.textDidBeginEditingNotification)) { obj in
                         if let textField = obj.object as? NSTextField {
                             DispatchQueue.main.async {
