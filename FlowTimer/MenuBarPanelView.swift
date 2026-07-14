@@ -26,11 +26,47 @@ struct MenuBarPanelView: View {
                 }
                 Spacer()
                 
-                if timerManager.phase == .work || timerManager.phase == .flowExtension {
-                    TagSelectorMenu(selectedTagId: Binding(
-                        get: { SettingsManager.shared.settings.selectedTagId },
-                        set: { SettingsManager.shared.settings.selectedTagId = $0 }
-                    ))
+                HStack(spacing: 10) {
+                    if timerManager.phase == .work || timerManager.phase == .flowExtension {
+                        TagSelectorMenu(selectedTagId: Binding(
+                            get: { SettingsManager.shared.settings.selectedTagId },
+                            set: { SettingsManager.shared.settings.selectedTagId = $0 }
+                        ))
+                    }
+                    
+                    Menu {
+                        let isMiniTimerVisible = WindowManager.shared.miniPanel?.isVisible == true
+                        Button(isMiniTimerVisible ? "Hide Mini Timer" : "Show Mini Timer") {
+                            WindowManager.shared.toggleMiniTimer()
+                            dismiss()
+                        }
+                        
+                        Button("Statistics") {
+                            dismiss()
+                            Task { @MainActor in
+                                await Task.yield()
+                                WindowManager.shared.showStatisticsWindow()
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        SettingsMenuView(dismiss: dismiss, showingCustomGoalSheet: $showingCustomGoalSheet)
+                        
+                        Divider()
+                        
+                        Button("Quit FlowTimer") {
+                            NSApplication.shared.terminate(nil)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.vertical")
+                            .font(.system(size: 14))
+                            .foregroundColor(currentTheme.secondaryForegroundColor)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
                 }
             }
             .padding(.horizontal, 20)
@@ -94,36 +130,6 @@ struct MenuBarPanelView: View {
             if SettingsManager.shared.settings.showTodaysFocus {
                 TodaysFocusView(timerManager: timerManager)
             }
-            
-            Divider()
-                .overlay(timerManager.phase == .flowExtension ? AmbientTheme.flowColor(isDarkMode: colorScheme == .dark).opacity(0.08) : Color.clear)
-                .padding(.horizontal, 16)
-            
-            // Secondary Actions
-            VStack(spacing: 4) {
-                let isMiniTimerVisible = WindowManager.shared.miniPanel?.isVisible == true
-                PopoverMenuItem(title: isMiniTimerVisible ? "Hide Mini Timer" : "Show Mini Timer") {
-                    WindowManager.shared.toggleMiniTimer()
-                    dismiss()
-                }
-                
-                PopoverMenuItem(title: "Statistics") {
-                    dismiss()
-                    Task { @MainActor in
-                        await Task.yield()
-                        WindowManager.shared.showStatisticsWindow()
-                    }
-                }
-                
-                SettingsMenuView(dismiss: dismiss, showingCustomGoalSheet: $showingCustomGoalSheet)
-                
-                PopoverMenuItem(title: "Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
         }
         .padding(.vertical, 16)
         .frame(width: 320)
@@ -134,41 +140,14 @@ struct MenuBarPanelView: View {
     }
 }
 
-struct PopoverMenuItem: View {
-    let title: String
-    let action: () -> Void
-    @State private var isHovered = false
-    @Environment(\.ambientTheme) var theme
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14))
-                .foregroundColor(isHovered ? theme.buttonForeground : theme.foregroundColor)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isHovered ? theme.accentColor : Color.clear)
-                .cornerRadius(4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-    }
-}
-
 struct SettingsMenuView: View {
     let dismiss: DismissAction
     @Binding var showingCustomGoalSheet: Bool
-    @State private var isHovered = false
-    @Environment(\.ambientTheme) var theme
     
     private var settings: TimerSettings { SettingsManager.shared.settings }
     
     var body: some View {
-        Menu {
+        Menu("Settings") {
             Menu("Work Duration") {
                 let workPresets = [15, 20, 25, 30, 45, 60]
                 let currentWork = settings.workDuration / 60
@@ -398,26 +377,6 @@ struct SettingsMenuView: View {
                 get: { SettingsManager.shared.settings.launchAtLogin },
                 set: { SettingsManager.shared.settings.launchAtLogin = $0 }
             ))
-        } label: {
-            HStack {
-                Text("Settings")
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .opacity(0.6)
-            }
-            .font(.system(size: 14))
-            .foregroundColor(isHovered ? theme.buttonForeground : theme.foregroundColor)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isHovered ? theme.accentColor : Color.clear)
-            .cornerRadius(4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovered = hovering
         }
     }
 }
