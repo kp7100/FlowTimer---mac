@@ -7,135 +7,137 @@ struct StatisticsView: View {
     @State private var selectedPeriod: StatisticsPeriod = .day
     @State private var selectedDate: Date = Date()
     
-    private var allSessionsWithActive: [SessionRecord] {
-        var list = historyManager.sessions
-        if let active = timerManager.activeSessionRecord {
-            list.append(active)
-        }
-        return list
-    }
+    @State private var store = StatisticsStore.shared
+
     
     var body: some View {
-        let sessions = allSessionsWithActive
-        if sessions.isEmpty {
-            EmptyStatisticsView()
-        } else {
-            let interval = Calendar.current.dateInterval(of: selectedPeriod, for: selectedDate)
-            let compInterval = Calendar.current.comparisonInterval(of: selectedPeriod, for: interval)
-            let stats = StatisticsPeriodCalculator.calculate(
-                for: interval,
-                comparisonInterval: compInterval,
-                allSessions: sessions,
-                goalFocusTime: SettingsManager.shared.settings.goalFocusTime
+        let interval = Calendar.current.dateInterval(of: selectedPeriod, for: selectedDate)
+        let compInterval = Calendar.current.comparisonInterval(of: selectedPeriod, for: interval)
+        
+        let stats = store.getStats(
+            for: interval,
+            comparisonInterval: compInterval,
+            goalFocusTime: SettingsManager.shared.settings.goalFocusTime,
+            activeRecord: timerManager.activeSessionRecord
+        )
+        
+        VStack(spacing: 0) {
+            // Header is always visible
+            StatisticsHeader(
+                selectedPeriod: $selectedPeriod,
+                selectedDate: $selectedDate,
+                title: periodTitle(for: selectedDate, period: selectedPeriod)
             )
+            .padding()
             
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    StatisticsHeader(
-                        selectedPeriod: $selectedPeriod,
-                        selectedDate: $selectedDate,
-                        title: periodTitle(for: selectedDate, period: selectedPeriod)
-                    )
-                    
-                    // Hero Cards (Focus Time & Goal Progress side-by-side)
-                    HStack(spacing: 16) {
-                        StatisticsHeroCard(stats: stats, period: selectedPeriod)
-                        if selectedPeriod != .year {
-                            StatisticsGoalCard(stats: stats, period: selectedPeriod, selectedDate: selectedDate)
-                        }
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    
-                    // Chart Card
-                    StatisticsChartCard(period: selectedPeriod, date: selectedDate, focusRecords: stats.focusRecords)
-                    
-                    // Session Quality Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Session Quality")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                        
+            if stats.completedSessions == 0 && stats.totalFocusTime == 0 {
+                EmptyStatisticsView()
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Hero Cards (Focus Time & Goal Progress side-by-side)
                         HStack(spacing: 16) {
-                            StatisticCard(
-                                title: "Longest Session",
-                                value: stats.completedSessions > 0 ? TimeFormatter.formatForStats(seconds: stats.longestSession) : "—",
-                                subtitle: "",
-                                iconName: "arrow.up.forward.circle",
-                                fillHeight: true
-                            )
-                            
-                            StatisticCard(
-                                title: "Average Session",
-                                value: stats.completedSessions > 0 ? TimeFormatter.formatForStats(seconds: stats.averageSessionLength) : "—",
-                                subtitle: "",
-                                iconName: "clock",
-                                fillHeight: true
-                            )
-                            
-                            StatisticCard(
-                                title: "Focus Sessions",
-                                value: "\(stats.completedSessions)",
-                                subtitle: "Completed",
-                                iconName: "checkmark.circle",
-                                fillHeight: true
-                            )
+                            StatisticsHeroCard(stats: stats, period: selectedPeriod)
+                            if selectedPeriod != .year {
+                                StatisticsGoalCard(stats: stats, period: selectedPeriod, selectedDate: selectedDate)
+                            }
                         }
                         .fixedSize(horizontal: false, vertical: true)
-                    }
-                    
-                    // Focus Quality Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Focus Quality")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
                         
-                        HStack(spacing: 16) {
-                            StatisticCard(
-                                title: "Pause Count",
-                                value: "\(stats.pauseCount)",
-                                subtitle: selectedPeriod == .day ? "Today" : "This Period",
-                                iconName: "pause.circle",
-                                fillHeight: true
-                            )
+                        // Chart Card
+                        StatisticsChartCard(period: selectedPeriod, date: selectedDate, focusRecords: stats.focusRecords)
+                        
+                        // Session Quality Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Session Quality")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
                             
-                            StatisticCard(
-                                title: "Avg Pauses / Session",
-                                value: stats.completedSessions > 0 ? formatAveragePauses(stats.averagePausesPerSession) : "—",
-                                subtitle: "Per Session",
-                                iconName: "hand.raised",
-                                fillHeight: true
-                            )
+                            HStack(spacing: 16) {
+                                StatisticCard(
+                                    title: "Longest Session",
+                                    value: stats.completedSessions > 0 ? TimeFormatter.formatForStats(seconds: stats.longestSession) : "—",
+                                    subtitle: "",
+                                    iconName: "arrow.up.forward.circle",
+                                    fillHeight: true
+                                )
+                                
+                                StatisticCard(
+                                    title: "Average Session",
+                                    value: stats.completedSessions > 0 ? TimeFormatter.formatForStats(seconds: stats.averageSessionLength) : "—",
+                                    subtitle: "",
+                                    iconName: "clock",
+                                    fillHeight: true
+                                )
+                                
+                                StatisticCard(
+                                    title: "Focus Sessions",
+                                    value: "\(stats.completedSessions)",
+                                    subtitle: "Completed",
+                                    iconName: "checkmark.circle",
+                                    fillHeight: true
+                                )
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
                         }
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
-                    
-                    // Top Tags Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Top Tags")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
                         
-                        StatisticsTagsSection(stats: stats)
+                        // Focus Quality Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Focus Quality")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                            
+                            HStack(spacing: 16) {
+                                StatisticCard(
+                                    title: "Pause Count",
+                                    value: "\(stats.pauseCount)",
+                                    subtitle: selectedPeriod == .day ? "Today" : "This Period",
+                                    iconName: "pause.circle",
+                                    fillHeight: true
+                                )
+                                
+                                StatisticCard(
+                                    title: "Avg Pauses / Session",
+                                    value: stats.completedSessions > 0 ? formatAveragePauses(stats.averagePausesPerSession) : "—",
+                                    subtitle: "Per Session",
+                                    iconName: "hand.raised",
+                                    fillHeight: true
+                                )
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                        
+                        // Top Tags Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Top Tags")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 4)
+                            
+                            StatisticsTagsSection(stats: stats)
+                        }
+                        
+                        // Footnote
+                        HStack(spacing: 4) {
+                            Image(systemName: "info.circle")
+                            Text("All times include Flow Extension")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
                     }
-                    
-                    // Footnote
-                    HStack(spacing: 4) {
-                        Image(systemName: "info.circle")
-                        Text("All times include Flow Extension")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 8)
+                    .padding()
                 }
-                .padding()
+                .animation(.easeInOut(duration: 0.25), value: selectedPeriod)
+                .animation(.easeInOut(duration: 0.25), value: selectedDate)
             }
-            .animation(.easeInOut(duration: 0.25), value: selectedPeriod)
-            .animation(.easeInOut(duration: 0.25), value: selectedDate)
         }
+        .task(id: selectedDate) { await store.sync() }
+        .task(id: selectedPeriod) { await store.sync() }
+        .task(id: historyManager.historyRevision) { await store.sync() }
+        .task { await store.sync() }
     }
     
     private func formatAveragePauses(_ avg: Double) -> String {

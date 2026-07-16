@@ -21,8 +21,8 @@ struct CompactTimerView: View {
                     VStack(alignment: .leading, spacing: -4) {
                         SharedSessionTitleView(
                             timerManager: timerManager,
-                            fontSize: 14,
-                            fontWeight: .bold,
+                            fontSize: 16,
+                            fontWeight: .semibold,
                             alignment: .leading,
                             frameAlignment: .leading
                         )
@@ -32,12 +32,12 @@ struct CompactTimerView: View {
                         
                         ZStack(alignment: .center) {
                             Text("00:00")
-                                .font(.system(size: 48, weight: .regular, design: .default))
+                                .font(.system(size: 40, weight: .medium, design: .default))
                                 .monospacedDigit()
                                 .hidden()
                             
                             Text(timerManager.remainingTimeFormatted)
-                                .font(.system(size: 48, weight: .regular, design: .default))
+                                .font(.system(size: 40, weight: .medium, design: .default))
                                 .monospacedDigit()
                                 .foregroundColor(currentTheme.timerTextColor)
                         }
@@ -47,15 +47,14 @@ struct CompactTimerView: View {
                     
                     // Slightly tighter dot spacing allows 10 sessions to fit safely
                     // Progress
-                    SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 6)
+                    SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 5)
                         .padding(.top, 4)
-                        .offset(x: 3) // Optically center beneath the timer's bounding box
                 }
                 
                 Spacer()
                 
                 // Play button safely anchored to the right margin
-                PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .system(size: 18, weight: .semibold), isMiniTimer: true)
+                PlayPauseButton(timerManager: timerManager, size: 44, iconSize: .system(size: 22, weight: .light), isMiniTimer: true)
                     .padding(.trailing, 16)
                     .offset(y: 5) // Optically center to the Timer text rather than the VStack bounds
             }
@@ -70,10 +69,10 @@ struct CompactTimerView: View {
             WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, onClose: {
                 WindowManager.shared.hideMiniTimer()
             })
-            .padding(.top, 12)
-            .padding(.leading, 12)
+            .padding(.top, 8)
+            .padding(.leading, 8)
         }
-        .frame(width: 220, height: 112)
+        .frame(width: 210, height: 105)
         .ignoresSafeArea()
         .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
         .onHover { hover in

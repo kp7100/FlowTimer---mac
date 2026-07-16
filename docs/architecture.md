@@ -23,6 +23,14 @@ FlowTimer is a macOS menu bar application designed as an `LSUIElement`. It provi
 - Handles phase transitions (Work, Break, Flow Extension).
 - Dispatches state updates to SwiftUI views.
 
+### `HistoryManager` & `HistoryPersister`
+- `HistoryManager` is the single source of truth for all recorded session history. It holds the in-memory array of `SessionRecord` objects and vends them to the app.
+- `HistoryPersister` is a dedicated Swift actor that handles JSON file persistence off the main thread. It guarantees atomic, coalesced disk writes to prevent UI hitching when large histories are saved.
+
+### `StatisticsStore` & `ContinuousSessionBuilder`
+- `StatisticsStore` acts as a highly optimized, `@MainActor` cache for UI rendering. It converts raw sessions into cached `DailySummary` objects, ensuring O(1) rendering time for the Statistics dashboard.
+- `ContinuousSessionBuilder` is a background actor that merges fragmented records (e.g., a Work phase and its subsequent Flow Extension phase) into unified `ContinuousSession` models, preventing duplicate work on the main thread.
+
 ### `ShortcutDispatcher`
 - Maps global keyboard shortcuts to specific manager actions without requiring the app to be active.
 

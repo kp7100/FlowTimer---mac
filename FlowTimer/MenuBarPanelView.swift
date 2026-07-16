@@ -5,6 +5,8 @@ struct MenuBarPanelView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
     @State private var showingCustomGoalSheet = false
+    @State private var isHoveringToolbar = false
+    @State private var isHoveringSkip = false
     
     private var currentTheme: AmbientTheme {
         AmbientTheme.current(for: timerManager.phase, isDarkMode: colorScheme == .dark)
@@ -12,65 +14,79 @@ struct MenuBarPanelView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            // Top Bar
-            HStack(spacing: 12) {
-                WindowControlsView(isHoveringWindow: true, showCloseButton: false, onClose: {
-                    WindowManager.shared.toggleMiniTimer()
-                })
+            VStack(spacing: 8) {
+                // Top Bar
+                HStack(spacing: 6) {
+                    WindowControlsView(isHoveringWindow: true, showCloseButton: false, onClose: {
+                        WindowManager.shared.toggleMiniTimer()
+                    })
                 
                 if SettingsManager.shared.settings.goalsEnabled {
                     let progress = GoalManager.shared.progress
                     Text(progress.displayText)
                         .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(currentTheme.secondaryForegroundColor)
+                        .foregroundColor(currentTheme.foregroundColor.opacity(0.9))
                 }
                 Spacer()
                 
-                HStack(spacing: 10) {
+                HStack(spacing: 2) {
+                    Button {
+                        dismiss()
+                        Task { @MainActor in
+                            await Task.yield()
+                            WindowManager.shared.showStatisticsWindow()
+                        }
+                    } label: {
+                        Image(systemName: "chart.bar")
+                            .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
+                            .nativeToolbarIcon()
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Group {
+                        if timerManager.canResetCycle {
+                        Button {
+                            timerManager.resetCycle()
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
+                                .nativeToolbarIcon()
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.symbolEffect(.drawOff))
+                    }
+                    }
+                    .animation(.default, value: timerManager.canResetCycle)
+                    
                     if timerManager.phase == .work || timerManager.phase == .flowExtension {
                         TagSelectorMenu(selectedTagId: Binding(
                             get: { SettingsManager.shared.settings.selectedTagId },
-                            set: { SettingsManager.shared.settings.selectedTagId = $0 }
+                            set: { newValue in
+                                withAnimation {
+                                    SettingsManager.shared.settings.selectedTagId = newValue
+                                }
+                            }
                         ))
                     }
                     
                     Menu {
-                        let isMiniTimerVisible = WindowManager.shared.miniPanel?.isVisible == true
-                        Button(isMiniTimerVisible ? "Hide Mini Timer" : "Show Mini Timer") {
-                            WindowManager.shared.toggleMiniTimer()
-                            dismiss()
-                        }
-                        
-                        Button("Statistics") {
-                            dismiss()
-                            Task { @MainActor in
-                                await Task.yield()
-                                WindowManager.shared.showStatisticsWindow()
-                            }
-                        }
-                        
-                        Divider()
-                        
                         SettingsMenuView(dismiss: dismiss, showingCustomGoalSheet: $showingCustomGoalSheet)
-                        
-                        Divider()
-                        
-                        Button("Quit FlowTimer") {
-                            NSApplication.shared.terminate(nil)
-                        }
                     } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 14))
-                            .foregroundColor(currentTheme.secondaryForegroundColor)
-                            .frame(width: 20, height: 20)
-                            .contentShape(Rectangle())
+                        Image("ellipsis.vertical")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 30)
+                            .offset(x: 0.5, y: 0)
+                            .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
+                            .nativeToolbarIcon()
                     }
                     .buttonStyle(.plain)
                 }
+                .opacity(isHoveringToolbar ? 1.0 : 0.0)
             }
-            .padding(.horizontal, 20)
-            
-            Spacer().frame(height: 8)
+            .padding(.leading, 12)
+            .padding(.trailing, 12)
             
             // Session Title
             SharedSessionTitleView(
@@ -81,8 +97,14 @@ struct MenuBarPanelView: View {
                 frameAlignment: .center
             )
             .padding(.horizontal, 20)
-            
-            // Timer Display
+        }
+        .contentShape(Rectangle())
+        .onHover { hover in
+            isHoveringToolbar = hover
+        }
+        .animation(.easeInOut(duration: 0.2), value: isHoveringToolbar)
+        
+        // Timer Display
             Text(timerManager.remainingTimeFormatted)
                 .font(.system(size: 72, weight: .regular, design: .default))
                 .monospacedDigit()
@@ -92,8 +114,9 @@ struct MenuBarPanelView: View {
             // Session Progress
             SessionProgressView(timerManager: timerManager, dotSize: 10, spacing: 12)
                 .padding(.bottom, 12)
-            
-            if timerManager.phase == .flowExtension {
+        
+
+        if timerManager.phase == .flowExtension {
                 Button(action: {
                     withAnimation {
                         timerManager.takeBreak()
@@ -103,12 +126,12 @@ struct MenuBarPanelView: View {
                         .font(.subheadline)
                 }
                 .buttonStyle(PrimaryAmbientButtonStyle())
-                .padding(.bottom, 16)
+                .pointingHandCursor()
             } else {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 32, height: 32) // Balance placeholder
                     
-                    PlayPauseButton(timerManager: timerManager, size: 60, iconSize: .title2)
+                    PlayPauseButton(timerManager: timerManager, size: 60, iconSize: .system(size: 27, weight: .light))
                     
                     Button(action: {
                         withAnimation {
@@ -117,21 +140,36 @@ struct MenuBarPanelView: View {
                     }) {
                         Image(systemName: "chevron.right")
                             .font(.title2)
-                            .foregroundColor(currentTheme.secondaryForegroundColor)
+                            .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
                             .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
+                            .contentShape(Circle())
+                            .background(
+                                Circle()
+                                    .fill(currentTheme.foregroundColor.opacity(isHoveringSkip ? 0.08 : 0.0))
+                            )
                     }
                     .buttonStyle(.plain)
+                    .pointingHandCursor()
+                    .onHover { hover in
+                        isHoveringSkip = hover
+                    }
+                    .animation(.easeInOut(duration: 0.1), value: isHoveringSkip)
                 }
-                .padding(.bottom, 16)
             }
             
             if SettingsManager.shared.settings.showTodaysFocus {
                 TodaysFocusView(timerManager: timerManager)
             }
         }
-        .padding(.vertical, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
         .frame(width: 320)
+        .background(
+            Color.white.opacity(0.0001)
+                .onTapGesture {
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
+        )
         .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
         .sheet(isPresented: $showingCustomGoalSheet) {
             CustomDailyGoalSheet(initialDuration: SettingsManager.shared.settings.goalFocusTime)
@@ -146,7 +184,7 @@ struct SettingsMenuView: View {
     private var settings: TimerSettings { SettingsManager.shared.settings }
     
     var body: some View {
-        Menu("Settings") {
+        Group {
             Menu("Work Duration") {
                 let workPresets = [15, 20, 25, 30, 45, 60]
                 let currentWork = settings.workDuration / 60
@@ -350,17 +388,7 @@ struct SettingsMenuView: View {
             
             Divider()
             
-            Toggle("Start Focus Sessions Automatically", isOn: Binding(
-                get: { SettingsManager.shared.settings.autoStartWork },
-                set: { SettingsManager.shared.settings.autoStartWork = $0 }
-            ))
-            
-            Toggle("Show Today's Focus", isOn: Binding(
-                get: { SettingsManager.shared.settings.showTodaysFocus },
-                set: { SettingsManager.shared.settings.showTodaysFocus = $0 }
-            ))
-            
-            Picker("Reset Today's Focus at", selection: Binding(
+            Picker("Reset Today's Focus At", selection: Binding(
                 get: { SettingsManager.shared.settings.focusTaskResetHour },
                 set: { SettingsManager.shared.settings.focusTaskResetHour = $0 }
             )) {
@@ -372,10 +400,26 @@ struct SettingsMenuView: View {
             }
             .help("Tasks carry over past midnight until this time.")
             
+            Toggle("Start Focus Sessions Automatically", isOn: Binding(
+                get: { SettingsManager.shared.settings.autoStartWork },
+                set: { SettingsManager.shared.settings.autoStartWork = $0 }
+            ))
+            
+            Toggle("Show Today's Focus", isOn: Binding(
+                get: { SettingsManager.shared.settings.showTodaysFocus },
+                set: { SettingsManager.shared.settings.showTodaysFocus = $0 }
+            ))
+            
             Toggle("Launch at Login", isOn: Binding(
                 get: { SettingsManager.shared.settings.launchAtLogin },
                 set: { SettingsManager.shared.settings.launchAtLogin = $0 }
             ))
+            
+            Divider()
+            
+            Button("Quit FlowTimer") {
+                NSApplication.shared.terminate(nil)
+            }
         }
     }
 }

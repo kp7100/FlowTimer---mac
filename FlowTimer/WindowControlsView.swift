@@ -33,6 +33,7 @@ struct WindowControlsView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .pointingHandCursor()
                 .onHover { hover in
                     withAnimation(.easeInOut(duration: FlowUIConstants.closeButtonAnimationDuration)) {
                         isHoveringClose = hover
@@ -51,20 +52,10 @@ struct WindowControlsView: View {
                     WindowManager.shared.showMiniTimer()
                 }) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: FlowUIConstants.closeButtonIconSize, weight: .bold))
-                        .foregroundColor(isHoveringMini ? theme.accentColor : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalOpacity))
-                        .frame(width: FlowUIConstants.closeButtonDiameter, height: FlowUIConstants.closeButtonDiameter)
-                        .background(
-                            Circle()
-                                .fill(isHoveringMini ? theme.accentColor.opacity(FlowUIConstants.closeButtonHoverBackgroundOpacity) : theme.foregroundColor.opacity(FlowUIConstants.closeButtonNormalBackgroundOpacity))
-                        )
+                        .foregroundColor(theme.foregroundColor.opacity(0.85))
+                        .nativeToolbarIcon(iconSize: 14)
                 }
                 .buttonStyle(.plain)
-                .onHover { hover in
-                    withAnimation(.easeInOut(duration: FlowUIConstants.closeButtonAnimationDuration)) {
-                        isHoveringMini = hover
-                    }
-                }
             }
         }
         .opacity(isHoveringWindow ? 1 : 0)

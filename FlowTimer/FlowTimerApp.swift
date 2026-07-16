@@ -11,8 +11,12 @@ let useNativeStatusItem = true
 class AppDelegate: NSObject, NSApplicationDelegate {
     let timerManager = TimerManager()
     
+    override init() {
+        super.init()
+        let _ = HistoryManager.shared
+    }
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
         WindowManager.shared.timerManager = timerManager
         
         if useNativeStatusItem {

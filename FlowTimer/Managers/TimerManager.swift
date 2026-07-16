@@ -46,6 +46,15 @@ final class TimerManager {
         return Double(currentPhaseDuration)
     }
     
+    var canResetCycle: Bool {
+        if state != .idle { return true }
+        if phase != .work { return true }
+        if currentSession != 1 { return true }
+        if currentPhaseRemainingSeconds != settings.workDuration { return true }
+        if accumulatedDurationAtLastSplit > 0 { return true }
+        return false
+    }
+    
     var activeSessionRecord: SessionRecord? {
         guard let startDate = currentPhaseStartDate else { return nil }
         guard phase == .work || phase == .flowExtension else { return nil }
@@ -474,7 +483,8 @@ final class TimerManager {
                         duration: finalDuration,
                         tag: isFocusPhase ? self.currentTag : nil,
                         pauseCount: self.currentSessionPauseCount,
-                        continuationOf: self.lastSessionFragmentID
+                        continuationOf: self.lastSessionFragmentID,
+                        termination: .natural
                     )
                     HistoryManager.shared.addSession(record)
                 }
@@ -522,7 +532,8 @@ final class TimerManager {
                     duration: fragmentDuration,
                     tag: currentTag,
                     pauseCount: currentSessionPauseCount,
-                    continuationOf: lastSessionFragmentID
+                    continuationOf: lastSessionFragmentID,
+                    termination: .natural
                 )
                 HistoryManager.shared.addSession(record)
             }
@@ -569,12 +580,9 @@ final class TimerManager {
         }
     }
     
-    private func processPauseGap(pauseTime: Date, resumeTime: Date) async {
+    private func finalizePartialSession(termination: SessionTermination, setContinuation: Bool, forcePauseTime: Date? = nil) async {
         guard phase == .work || phase == .flowExtension else { return }
         guard let phaseStart = currentPhaseStartDate else { return }
-        
-        let gap = resumeTime.timeIntervalSince(pauseTime)
-        guard gap >= sessionSplitThresholdSeconds else { return }
         
         let engineSnapshot = await engine.snapshot()
         let fragmentDuration = engineSnapshot.accumulatedSeconds - accumulatedDurationAtLastSplit
@@ -585,19 +593,33 @@ final class TimerManager {
                 id: currentID,
                 phase: phase,
                 startDate: phaseStart,
-                endDate: pauseTime,
+                endDate: forcePauseTime ?? Date(),
                 duration: fragmentDuration,
                 tag: currentTag,
                 pauseCount: currentSessionPauseCount,
-                continuationOf: lastSessionFragmentID
+                continuationOf: lastSessionFragmentID,
+                termination: termination
             )
             HistoryManager.shared.addSession(record)
-            lastSessionFragmentID = currentID
+            if setContinuation {
+                lastSessionFragmentID = currentID
+            } else {
+                lastSessionFragmentID = nil
+            }
         }
+    }
+
+    private func processPauseGap(pauseTime: Date, resumeTime: Date) async {
+        guard phase == .work || phase == .flowExtension else { return }
+        
+        let gap = resumeTime.timeIntervalSince(pauseTime)
+        guard gap >= sessionSplitThresholdSeconds else { return }
+        
+        await finalizePartialSession(termination: .split, setContinuation: true, forcePauseTime: pauseTime)
         
         // Begin the new segment
         currentPhaseStartDate = resumeTime
-        accumulatedDurationAtLastSplit = engineSnapshot.accumulatedSeconds
+        accumulatedDurationAtLastSplit = (await engine.snapshot()).accumulatedSeconds
         currentSessionPauseCount = 0
     }
     func pause() {
@@ -633,6 +655,30 @@ final class TimerManager {
             self.lastPausedAt = nil
             self.lastSessionFragmentID = nil
             self.accumulatedDurationAtLastSplit = 0
+            await engine.setPhase(.work, direction: .countdown)
+            await engine.setDuration(settings.workDuration)
+        }
+    }
+    
+    func resetCycle() {
+        Task { [weak self] in
+            guard let self else { return }
+            await self.engine.pause()
+            
+            // Finalize the partial session directly using real elapsed time
+            await self.finalizePartialSession(termination: .reset, setContinuation: false, forcePauseTime: self.lastPausedAt)
+            
+            // Reset to cycle 1 completely
+            self.currentSession = 1
+            self.phase = .work
+            self.currentPhaseStartDate = nil
+            self.currentPhaseDuration = settings.workDuration
+            self.currentPhaseRemainingSeconds = settings.workDuration
+            self.lastPausedAt = nil
+            self.lastSessionFragmentID = nil
+            self.accumulatedDurationAtLastSplit = 0
+            self.currentSessionPauseCount = 0
+            
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
         }

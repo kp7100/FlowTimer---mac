@@ -7,13 +7,17 @@ final class HistoryManager {
     static let shared = HistoryManager()
     
     private(set) var sessions: [SessionRecord] = []
+    private(set) var historyRevision: Int = 0
+
     
     private let fileManager = FileManager.default
     private let fileName = "FlowTimerHistory.json"
     
+    private var persister: HistoryPersister?
+    
     private var fileURL: URL? {
         guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.flowtimer.app"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.krishanpareek.FlowTimer"
         let appDirectory = appSupportURL.appendingPathComponent(bundleID, isDirectory: true)
         
         if !fileManager.fileExists(atPath: appDirectory.path) {
@@ -24,16 +28,22 @@ final class HistoryManager {
     }
     
     private init() {
+        if let url = fileURL {
+            persister = HistoryPersister(fileURL: url)
+        }
         loadHistory()
     }
     
     func addSession(_ session: SessionRecord) {
         sessions.append(session)
+        historyRevision += 1
         saveHistory()
+
     }
     
     func clearHistory() {
         sessions.removeAll()
+        historyRevision += 1
         saveHistory()
     }
     
@@ -163,26 +173,68 @@ final class HistoryManager {
     
     // Persistence
     private func loadHistory() {
-        guard let url = fileURL, fileManager.fileExists(atPath: url.path) else { return }
+        var logOutput = "====== HISTORY MANAGER DIAGNOSTICS ======\n"
+        logOutput += "Bundle ID: \(Bundle.main.bundleIdentifier ?? "nil")\n"
+        
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.krishanpareek.FlowTimer"
+        let appDirectory = appSupportURL.appendingPathComponent(bundleID, isDirectory: true)
+        let logURL = appDirectory.appendingPathComponent("history_log.txt")
+        
+        logOutput += "Application Support: \(appSupportURL.path)\n"
+        
+        guard let url = fileURL else {
+            logOutput += "ERROR: fileURL is nil\n=========================================\n"
+            try? logOutput.write(to: logURL, atomically: true, encoding: .utf8)
+            return
+        }
+        
+        logOutput += "Resolved History Path: \(url.path)\n"
+        let exists = fileManager.fileExists(atPath: url.path)
+        logOutput += "File Exists: \(exists)\n"
+        
+        if exists {
+            do {
+                let attr = try fileManager.attributesOfItem(atPath: url.path)
+                let size = attr[.size] as? UInt64 ?? 0
+                logOutput += "File Size: \(size) bytes\n"
+            } catch {
+                logOutput += "Failed to read file size: \(error)\n"
+            }
+        }
+        
+        guard exists else {
+            logOutput += "=========================================\n"
+            let existingLog = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
+            try? (existingLog + logOutput).write(to: logURL, atomically: true, encoding: .utf8)
+            return
+        }
         
         do {
             let data = try Data(contentsOf: url)
             let decoded = try JSONDecoder().decode([SessionRecord].self, from: data)
             self.sessions = decoded
+            logOutput += "Successfully loaded \(decoded.count) SessionRecords.\n"
+            if let first = decoded.first, let last = decoded.last {
+                logOutput += "First Session Date: \(first.startDate)\n"
+                logOutput += "Last Session Date: \(last.startDate)\n"
+            }
+            logOutput += "HistoryManager.shared.sessions.count: \(self.sessions.count)\n"
         } catch {
-            print("Failed to load history gracefully: \(error)")
-            // If file is corrupted, we just start with empty history and don't crash.
+            logOutput += "Failed to load history gracefully: \(error)\n"
         }
+        logOutput += "=========================================\n"
+        
+        let existingLog = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
+        try? (existingLog + logOutput).write(to: logURL, atomically: true, encoding: .utf8)
     }
     
     private func saveHistory() {
-        guard let url = fileURL else { return }
-        
-        do {
-            let data = try JSONEncoder().encode(sessions)
-            try data.write(to: url, options: .atomic)
-        } catch {
-            print("Failed to save history: \(error)")
+        guard let persister = persister else { return }
+        let snapshot = sessions // Value copy for thread safety
+        Task {
+            await persister.save(sessions: snapshot)
         }
     }
 }

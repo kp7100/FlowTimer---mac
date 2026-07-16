@@ -29,7 +29,8 @@ struct PlayPauseButton: View {
                     .background(theme.takeBreakButtonBackground)
                     .clipShape(Circle())
             } else {
-                Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
+                Image(systemName: timerManager.isRunning ? "pause" : "play")
+                    .contentTransition(.symbolEffect(.replace))
                     .font(iconSize)
                     .foregroundColor(timerManager.phase == .work ? theme.accentColor : theme.buttonForeground)
                     .frame(width: size, height: size)
@@ -38,5 +39,6 @@ struct PlayPauseButton: View {
             }
         }
         .buttonStyle(.plain)
+        .pointingHandCursor()
     }
 }

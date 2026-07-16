@@ -14,11 +14,11 @@ struct EmptyStatisticsView: View {
                     )
                 )
             
-            Text("Your Focus Journey Starts Here")
+            Text("No focus activity")
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text("Complete your first focus session to generate insights, track session quality, and see your focus distribution.")
+            Text("Try selecting a different date or period to view your focus history.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

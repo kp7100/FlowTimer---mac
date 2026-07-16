@@ -84,11 +84,11 @@ struct AmbientTheme: Equatable {
             )
             
         case .shortBreak:
-            let bgTeal = Color(red: 0.10, green: 0.22, blue: 0.19) // Rich eucalyptus
-            let buttonTeal = Color(red: 0.06, green: 0.16, blue: 0.14) // Darker teal button
-            let hoverTeal = Color(red: 0.04, green: 0.13, blue: 0.11)
-            let pressedTeal = Color(red: 0.03, green: 0.10, blue: 0.08)
-            let activeTeal = Color(red: 0.30, green: 0.75, blue: 0.65) // Brighter active teal
+            let bgTeal = Color(red: 0.16, green: 0.32, blue: 0.28) // Rich eucalyptus (lighter)
+            let buttonTeal = Color(red: 0.12, green: 0.26, blue: 0.23) // Darker teal button
+            let hoverTeal = Color(red: 0.10, green: 0.23, blue: 0.20)
+            let pressedTeal = Color(red: 0.08, green: 0.20, blue: 0.17)
+            let activeTeal = Color(red: 0.35, green: 0.80, blue: 0.70) // Brighter active teal
             
             return AmbientTheme(
                 backgroundColor: bgTeal,
@@ -111,11 +111,11 @@ struct AmbientTheme: Equatable {
             )
             
         case .longBreak:
-            let bgLongTeal = Color(red: 0.08, green: 0.19, blue: 0.16) // Slightly darker eucalyptus
-            let buttonLongTeal = Color(red: 0.05, green: 0.14, blue: 0.12)
-            let hoverLongTeal = Color(red: 0.03, green: 0.11, blue: 0.09)
-            let pressedLongTeal = Color(red: 0.02, green: 0.08, blue: 0.07)
-            let activeLongTeal = Color(red: 0.28, green: 0.70, blue: 0.60)
+            let bgLongTeal = Color(red: 0.14, green: 0.29, blue: 0.25) // Slightly darker eucalyptus (lighter)
+            let buttonLongTeal = Color(red: 0.10, green: 0.23, blue: 0.20)
+            let hoverLongTeal = Color(red: 0.08, green: 0.20, blue: 0.17)
+            let pressedLongTeal = Color(red: 0.06, green: 0.17, blue: 0.14)
+            let activeLongTeal = Color(red: 0.33, green: 0.75, blue: 0.65)
             
             return AmbientTheme(
                 backgroundColor: bgLongTeal,

@@ -16,194 +16,62 @@ struct InlineEditableTitle: View {
     @Environment(\.ambientTheme) var theme
     
     var body: some View {
-        NativeInlineTextField(
+        let textBinding = Binding<String>(
+            get: { customTitle ?? "" },
+            set: { customTitle = $0.isEmpty ? nil : $0 }
+        )
+        
+        let nsFontWeight: NSFont.Weight = {
+            switch fontWeight {
+            case .ultraLight: return .ultraLight
+            case .thin: return .thin
+            case .light: return .light
+            case .regular: return .regular
+            case .medium: return .medium
+            case .semibold: return .semibold
+            case .bold: return .bold
+            case .heavy: return .heavy
+            case .black: return .black
+            default: return .regular
+            }
+        }()
+        
+        let nsAlignment: NSTextAlignment = {
+            switch alignment {
+            case .leading: return .left
+            case .center: return .center
+            case .trailing: return .right
+            }
+        }()
+        
+        SharedInlineTextField(
             displayTitle: displayTitle,
-            customTitle: $customTitle,
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            alignment: alignment,
-            foregroundColor: theme.foregroundColor,
-            secondaryForegroundColor: theme.secondaryForegroundColor,
-            isEditing: $isEditing
+            text: textBinding,
+            placeholder: "What's your focus?",
+            placeholderColor: NSColor(theme.secondaryForegroundColor.opacity(0.5)),
+            font: .systemFont(ofSize: fontSize, weight: nsFontWeight),
+            textColor: NSColor(theme.foregroundColor),
+            alignment: nsAlignment,
+            isEditing: $isEditing,
+            onCommit: { newText in
+                customTitle = newText.isEmpty ? nil : newText
+            }
         )
         .frame(maxWidth: .infinity, alignment: frameAlignment)
         .padding(.vertical, 4)
+        .onOutsideClick(isActive: isEditing) {
+            isEditing = false
+        }
         .padding(.horizontal, 4) // Reduced from 12 so it doesn't push the leading edge too much in the mini timer
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(theme.foregroundColor.opacity(isHovering && !isEditing ? 0.06 : 0))
+                .fill(theme.foregroundColor.opacity((isHovering || isEditing) ? 0.06 : 0))
         )
+        .animation(.easeInOut(duration: 0.2), value: isHovering || isEditing)
         .onHover { hover in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isHovering = hover
-            }
+            isHovering = hover
         }
     }
 }
 
-struct NativeInlineTextField: NSViewRepresentable {
-    let displayTitle: String
-    @Binding var customTitle: String?
-    var fontSize: CGFloat
-    var fontWeight: Font.Weight
-    var alignment: TextAlignment
-    var foregroundColor: Color
-    var secondaryForegroundColor: Color
-    @Binding var isEditing: Bool
-    
-    func makeNSView(context: Context) -> ClickToEditTextField {
-        let textField = ClickToEditTextField()
-        textField.isBordered = false
-        textField.drawsBackground = false
-        textField.focusRingType = .none
-        textField.isEditable = false // Initially false to look like a label
-        textField.isSelectable = false
-        textField.delegate = context.coordinator
-        
-        let weight = nsFontWeight(from: fontWeight)
-        textField.font = NSFont.systemFont(ofSize: fontSize, weight: weight)
-        
-        switch alignment {
-        case .leading: textField.alignment = .left
-        case .center: textField.alignment = .center
-        case .trailing: textField.alignment = .right
-        }
-        
-        textField.usesSingleLineMode = true
-        textField.cell?.isScrollable = true
-        textField.cell?.wraps = false
-        textField.maximumNumberOfLines = 1
-        textField.lineBreakMode = .byTruncatingTail
-        
-        // CRITICAL FIX: Allow SwiftUI to squish the text field so native truncation can kick in
-        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        textField.placeholderString = "What's your focus?"
-        textField.onBeginEditing = {
-            context.coordinator.draftText = textField.stringValue
-            textField.stringValue = self.customTitle ?? ""
-            DispatchQueue.main.async {
-                self.isEditing = true
-            }
-        }
-        
-        return textField
-    }
-    
-    func updateNSView(_ nsView: ClickToEditTextField, context: Context) {
-        if !isEditing {
-            nsView.stringValue = displayTitle
-            nsView.textColor = NSColor(foregroundColor)
-            nsView.lineBreakMode = .byTruncatingTail
-        } else {
-            nsView.lineBreakMode = .byClipping // Allows native scrolling without ellipsis while typing
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    private func nsFontWeight(from weight: Font.Weight) -> NSFont.Weight {
-        switch weight {
-        case .ultraLight: return .ultraLight
-        case .thin: return .thin
-        case .light: return .light
-        case .regular: return .regular
-        case .medium: return .medium
-        case .semibold: return .semibold
-        case .bold: return .bold
-        case .heavy: return .heavy
-        case .black: return .black
-        default: return .regular
-        }
-    }
-    
-    class Coordinator: NSObject, NSTextFieldDelegate {
-        var parent: NativeInlineTextField
-        var draftText = ""
-        weak var editingTextField: NSTextField?
-        
-        init(_ parent: NativeInlineTextField) {
-            self.parent = parent
-            super.init()
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(focusLost),
-                name: NSWindow.didResignKeyNotification,
-                object: nil
-            )
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(focusLost),
-                name: NSApplication.didResignActiveNotification,
-                object: nil
-            )
-        }
-        
-        deinit {
-            NotificationCenter.default.removeObserver(self)
-        }
-        
-        func controlTextDidBeginEditing(_ obj: Notification) {
-            if let textField = obj.object as? NSTextField {
-                self.editingTextField = textField
-                textField.textColor = NSColor(parent.foregroundColor)
-            }
-        }
-        
-        func controlTextDidEndEditing(_ obj: Notification) {
-            endEditing(obj.object as? NSTextField)
-        }
-        
-        @objc func focusLost(_ notification: Notification) {
-            if parent.isEditing, let textField = editingTextField {
-                textField.window?.makeFirstResponder(nil)
-                endEditing(textField)
-            }
-        }
-        
-        private func endEditing(_ textField: NSTextField?) {
-            guard let textField = textField else { return }
-            textField.isEditable = false
-            textField.isSelectable = false
-            
-            let newText = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            parent.customTitle = newText.isEmpty ? nil : newText
-            
-            DispatchQueue.main.async {
-                self.parent.isEditing = false
-            }
-        }
-        
-        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
-                if let textField = control as? NSTextField {
-                    textField.stringValue = draftText
-                    // Ending editing will trigger controlTextDidEndEditing where state is reset
-                    textField.window?.makeFirstResponder(nil)
-                }
-                return true
-            }
-            return false
-        }
-    }
-}
 
-class ClickToEditTextField: NSTextField {
-    var onBeginEditing: (() -> Void)?
-    
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
-        return true
-    }
-    
-    override func mouseDown(with event: NSEvent) {
-        if !isEditable {
-            isEditable = true
-            isSelectable = true
-            onBeginEditing?()
-            window?.makeKeyAndOrderFront(nil)
-            window?.makeFirstResponder(self)
-        }
-        super.mouseDown(with: event)
-    }
-}

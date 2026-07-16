@@ -69,7 +69,8 @@ class GlobalShortcutManager {
     }
     
     private func register(definition: ShortcutDefinition) {
-        let hotKeyID = EventHotKeyID(signature: UTGetOSTypeFromString("FLTM" as CFString), id: definition.action.rawID)
+        let signature = "FLTM".utf8.prefix(4).reduce(0) { ($0 << 8) | OSType($1) }
+        let hotKeyID = EventHotKeyID(signature: signature, id: definition.action.rawID)
         var hotKeyRef: EventHotKeyRef?
         
         let status = RegisterEventHotKey(

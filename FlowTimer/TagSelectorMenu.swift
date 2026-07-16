@@ -15,13 +15,14 @@ struct TagSelectorMenu: View {
                     Text(tag.name).tag(Optional(tag.id))
                 }
             }
+            .pickerStyle(.inline)
         } label: {
             Image(systemName: hasTag ? "tag.fill" : "tag")
-                .font(.system(size: 14))
                 .foregroundColor(hasTag ? currentTheme.accentColor : currentTheme.secondaryForegroundColor)
+                .nativeToolbarIcon()
                 .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
     }

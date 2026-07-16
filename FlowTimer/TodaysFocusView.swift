@@ -68,71 +68,47 @@ struct FocusTaskRowView: View {
                 taskManager.toggleCompletion(id: task.id)
             }) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14))
+                    .font(.system(size: 19, weight: .medium))
                     .foregroundColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.secondaryForegroundColor)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
             
-            if isEditing {
-                TextField("", text: $editingText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .foregroundColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.foregroundColor)
-                    .focused($isFocused)
-                    .onReceive(NotificationCenter.default.publisher(for: NSTextField.textDidBeginEditingNotification)) { obj in
-                        if let textField = obj.object as? NSTextField {
-                            DispatchQueue.main.async {
-                                textField.currentEditor()?.selectedRange = NSRange(location: textField.stringValue.count, length: 0)
-                            }
-                        }
-                    }
-                    .onChange(of: isFocused) { _, focused in
-                        if !focused {
-                            editingText = task.text
+            Group {
+                if isEditing {
+                    SharedInlineTextField(
+                        displayTitle: "",
+                        text: $editingText,
+                        placeholder: "",
+                        placeholderColor: NSColor(theme.secondaryForegroundColor.opacity(0.5)),
+                        font: .systemFont(ofSize: 14),
+                        textColor: NSColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.foregroundColor),
+                        alignment: .left,
+                        isEditing: $isEditing,
+                        onCommit: { newText in
+                            taskManager.updateText(id: task.id, newText: newText)
                             isEditing = false
                         }
-                    }
-                    .onSubmit {
-                        taskManager.updateText(id: task.id, newText: editingText)
-                        isEditing = false
-                    }
-                    .onAppear {
-                        isFocused = true
-                    }
-            } else {
-                Text(task.text)
-                    .font(.system(size: 14))
-                    .foregroundColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.foregroundColor)
-                    .strikethrough(task.isCompleted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        isEditing = true
-                        DispatchQueue.main.async {
-                            isFocused = true
-                        }
-                    }
-            }
-            
-            TagSelectorMenu(selectedTagId: Binding(
-                get: {
-                    guard let tagName = task.tagName else { return nil }
-                    return TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() })?.id
-                },
-                set: { newId in
-                    if let newId = newId, let tag = TagManager.shared.tags.first(where: { $0.id == newId }) {
-                        taskManager.setTag(id: task.id, tagName: tag.name)
-                    } else {
-                        taskManager.setTag(id: task.id, tagName: nil)
-                    }
+                    )
+                    .padding(.trailing, !task.isCompleted ? 104 : 0)
+                } else {
+                    Text(task.text)
+                        .font(.system(size: 14))
+                        .foregroundColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.foregroundColor)
+                        .strikethrough(task.isCompleted)
+                        .lineLimit(1)
+                        .padding(.trailing, !task.isCompleted ? 104 : 0)
                 }
-            ))
-            .opacity(isEditing ? 1.0 : 0.0)
-            .disabled(!isEditing)
-            
-            // Hover Actions
-            HStack(spacing: 12) {
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isEditing = true
+                DispatchQueue.main.async {
+                    isFocused = true
+                }
+            }
+            .overlay(alignment: .trailing) {
                 if !task.isCompleted {
                     HStack(spacing: 8) {
                         if !isFirstIncomplete {
@@ -158,28 +134,45 @@ struct FocusTaskRowView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                        
+                        TagSelectorMenu(selectedTagId: Binding(
+                            get: {
+                                guard let tagName = task.tagName else { return nil }
+                                return TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() })?.id
+                            },
+                            set: { newId in
+                                if let newId = newId, let tag = TagManager.shared.tags.first(where: { $0.id == newId }) {
+                                    taskManager.setTag(id: task.id, tagName: tag.name)
+                                } else {
+                                    taskManager.setTag(id: task.id, tagName: nil)
+                                }
+                            }
+                        ))
+                        
+                        Button(action: {
+                            timerManager.customSessionTitle = task.text
+                            if let tagName = task.tagName,
+                               let tag = TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() }) {
+                                SettingsManager.shared.settings.selectedTagId = tag.id
+                            }
+                        }) {
+                            Image(systemName: "inset.filled.topthird.rectangle")
+                                .foregroundColor(theme.foregroundColor.opacity(0.85))
+                                .nativeToolbarIcon()
+                        }
+                        .buttonStyle(.plain)
+                        .help("Set as Session Title")
                     }
+                    .opacity((isHovered || isEditing) ? 1.0 : 0.0)
                 }
-                
-                Button(action: {
-                    timerManager.customSessionTitle = task.text
-                    if let tagName = task.tagName,
-                       let tag = TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() }) {
-                        SettingsManager.shared.settings.selectedTagId = tag.id
-                    }
-                }) {
-                    Image("custom.text.rectangle")
-                        .font(.system(size: 12))
-                        .foregroundColor(theme.secondaryForegroundColor)
-                        .frame(width: 20, height: 20)
-                }
-                .buttonStyle(.plain)
-                .help("Set as Session Title")
             }
-            .opacity(isHovered ? 1.0 : 0.0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(theme.foregroundColor.opacity(isHovered ? 0.06 : 0.0))
+        )
         .onHover(perform: onHover)
         .onAppear {
             editingText = task.text
@@ -210,71 +203,69 @@ struct FocusTaskInputRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "circle")
-                .font(.system(size: 14))
+                .font(.system(size: 19, weight: .medium))
                 .foregroundColor(theme.secondaryForegroundColor.opacity(0.3))
-                .frame(width: 20, height: 20)
+                .frame(width: 30, height: 30)
             
-            if isEditing {
-                ZStack(alignment: .leading) {
-                    if inputText.isEmpty {
-                        Text(placeholder)
-                            .font(.system(size: 14))
-                            .foregroundColor(theme.secondaryForegroundColor.opacity(0.5))
-                    }
+            Group {
+                if isEditing {
                     TextField("", text: $inputText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 14))
                         .foregroundColor(theme.foregroundColor)
                         .focused($isFocused)
-                }
-                    .onReceive(NotificationCenter.default.publisher(for: NSTextField.textDidBeginEditingNotification)) { obj in
-                        if let textField = obj.object as? NSTextField {
-                            DispatchQueue.main.async {
-                                textField.currentEditor()?.selectedRange = NSRange(location: textField.stringValue.count, length: 0)
+                        .onReceive(NotificationCenter.default.publisher(for: NSTextField.textDidBeginEditingNotification)) { obj in
+                            if let textField = obj.object as? NSTextField {
+                                DispatchQueue.main.async {
+                                    textField.currentEditor()?.selectedRange = NSRange(location: textField.stringValue.count, length: 0)
+                                }
                             }
                         }
-                    }
-                    .onChange(of: isFocused) { _, focused in
-                        if !focused {
-                            isEditing = false
-                            inputText = ""
+                        .onChange(of: isFocused) { _, focused in
+                            if !focused {
+                                isEditing = false
+                                inputText = ""
+                            }
                         }
-                    }
-                    .onSubmit {
-                        let textToSave = inputText
-                        let tagToSave = selectedTagId
-                        inputText = ""
-                        selectedTagId = nil
-                        isEditing = false
-                        taskManager.addTask(text: textToSave, explicitTagId: tagToSave)
-                    }
-                    .onAppear {
-                        isFocused = true
-                    }
-            } else {
-                Text(placeholder)
-                    .font(.system(size: 14))
-                    .foregroundColor(theme.secondaryForegroundColor.opacity(0.5))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        isEditing = true
-                        DispatchQueue.main.async {
+                        .onSubmit {
+                            let textToSave = inputText
+                            let tagToSave = selectedTagId
+                            inputText = ""
+                            selectedTagId = nil
+                            isEditing = false
+                            if !textToSave.trimmingCharacters(in: .whitespaces).isEmpty {
+                                taskManager.addTask(text: textToSave, explicitTagId: tagToSave)
+                            }
+                        }
+                        .onAppear {
                             isFocused = true
                         }
-                    }
+                        .padding(.trailing, 34)
+                } else {
+                    Text(placeholder)
+                        .font(.system(size: 14))
+                        .foregroundColor(theme.secondaryForegroundColor.opacity(0.5))
+                        .lineLimit(1)
+                        .padding(.trailing, 34)
+                }
             }
-            
-            TagSelectorMenu(selectedTagId: $selectedTagId)
-                .opacity(isEditing ? 1.0 : 0.0)
-                .disabled(!isEditing)
-            
-            // Placeholder space for hover actions to keep layout perfectly aligned
-            HStack(spacing: 8) {
-                Color.clear.frame(width: 20, height: 20)
-                Color.clear.frame(width: 24, height: 24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(GeometryReader { geo in Color.clear.onAppear { print("MEASURE - Text Container (Group) width: \(geo.size.width)") } })
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isEditing = true
+                DispatchQueue.main.async {
+                    isFocused = true
+                }
+            }
+            .overlay(alignment: .trailing) {
+                TagSelectorMenu(selectedTagId: $selectedTagId)
+                    .opacity(isEditing ? 1.0 : 0.0)
+                    .disabled(!isEditing)
+                    .background(GeometryReader { geo in Color.clear.onAppear { print("MEASURE - TagSelectorMenu width: \(geo.size.width)") } })
             }
         }
+        .background(GeometryReader { geo in Color.clear.onAppear { print("MEASURE - Entire Input Row width: \(geo.size.width)") } })
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
     }
