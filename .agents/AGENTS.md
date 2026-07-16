@@ -10,3 +10,21 @@
 
 ## Onboarding Documentation Rule
 From now on, whenever we implement a feature that changes user behavior or introduces a concept that may not be immediately obvious, automatically append a concise entry to docs/onboarding-notes.md. Do not write onboarding screens—only maintain this knowledge base for future onboarding design.
+
+## Maintaining AGENTS.md Rule
+When a bug fix or implementation reveals a reusable project-wide rule that is likely to prevent future regressions, suggest an update to AGENTS.md. 
+
+Examples of what qualifies:
+* macOS framework quirks
+* SwiftUI/AppKit layout pitfalls
+* Standard UI sizing and spacing rules
+* Git safety practices
+* Development workflow improvements
+
+Do not update AGENTS.md automatically. Instead:
+1. Briefly explain why the rule is worth preserving.
+2. Show the exact Markdown snippet to add.
+3. Wait for approval before modifying AGENTS.md.
+
+Do not add feature-specific, temporary, or one-off rules.
+
