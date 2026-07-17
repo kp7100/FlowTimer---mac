@@ -11,15 +11,37 @@ struct StatisticsView: View {
 
     
     var body: some View {
-        let interval = Calendar.current.dateInterval(of: selectedPeriod, for: selectedDate)
-        let compInterval = Calendar.current.comparisonInterval(of: selectedPeriod, for: interval)
+        let calendar = Calendar.current
+        let interval = calendar.dateInterval(of: selectedPeriod, for: selectedDate)
+        let compInterval = calendar.comparisonInterval(of: selectedPeriod, for: interval)
+        let activeRecord = timerManager.activeSessionRecord
         
         let stats = store.getStats(
-            for: interval,
+            for: selectedPeriod,
+            interval: interval,
             comparisonInterval: compInterval,
             goalFocusTime: SettingsManager.shared.settings.goalFocusTime,
-            activeRecord: timerManager.activeSessionRecord
+            activeRecord: activeRecord
         )
+        let hasStats = stats.completedSessions != 0 || stats.totalFocusTime != 0
+        let chartData = hasStats
+            ? store.chartData(
+                for: selectedPeriod,
+                date: selectedDate,
+                interval: interval,
+                stats: stats,
+                activeRecord: activeRecord
+            )
+            : []
+        let goalDailyDurations = hasStats && selectedPeriod != .day && selectedPeriod != .year
+            ? store.goalConsistencyData(
+                for: selectedPeriod,
+                date: selectedDate,
+                interval: interval,
+                stats: stats,
+                activeRecord: activeRecord
+            )
+            : []
         
         VStack(spacing: 0) {
             // Header is always visible
@@ -30,7 +52,7 @@ struct StatisticsView: View {
             )
             .padding()
             
-            if stats.completedSessions == 0 && stats.totalFocusTime == 0 {
+            if !hasStats {
                 EmptyStatisticsView()
             } else {
                 ScrollView {
@@ -39,13 +61,17 @@ struct StatisticsView: View {
                         HStack(spacing: 16) {
                             StatisticsHeroCard(stats: stats, period: selectedPeriod)
                             if selectedPeriod != .year {
-                                StatisticsGoalCard(stats: stats, period: selectedPeriod, selectedDate: selectedDate)
+                                StatisticsGoalCard(
+                                    stats: stats,
+                                    period: selectedPeriod,
+                                    dailyDurations: goalDailyDurations
+                                )
                             }
                         }
                         .fixedSize(horizontal: false, vertical: true)
                         
                         // Chart Card
-                        StatisticsChartCard(period: selectedPeriod, date: selectedDate, focusRecords: stats.focusRecords)
+                        StatisticsChartCard(period: selectedPeriod, data: chartData)
                         
                         // Session Quality Section
                         VStack(alignment: .leading, spacing: 8) {
@@ -134,10 +160,7 @@ struct StatisticsView: View {
                 .animation(.easeInOut(duration: 0.25), value: selectedDate)
             }
         }
-        .task(id: selectedDate) { await store.sync() }
-        .task(id: selectedPeriod) { await store.sync() }
         .task(id: historyManager.historyRevision) { await store.sync() }
-        .task { await store.sync() }
     }
     
     private func formatAveragePauses(_ avg: Double) -> String {

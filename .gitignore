@@ -1,0 +1,33 @@
+# Build artifacts
+*.o
+main
+test_history
+test_store
+
+# IDE and System Files
+.DS_Store
+DerivedData/
+build/
+*.xcuserstate
+
+# Temporary/Scratch scripts
+check_stats.swift
+debug_chart.swift
+debug_script.swift
+print_paths.swift
+run_stats_test.swift
+test_bounce.swift
+test_clock.swift
+test_dates.swift
+test_flow_sleep.swift
+test_history.swift
+test_menu_click.swift
+test_menu_plain.swift
+test_menu_plain2.swift
+test_menu_zstack.swift
+test_picker.swift
+test_recovery.swift
+test_sheet.swift
+test_store.swift
+test_symbol_effect.swift
+update_pbxproj.rb

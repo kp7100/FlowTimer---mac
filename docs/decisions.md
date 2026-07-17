@@ -15,3 +15,12 @@ Combining them into a single class resulted in tangled `if isMiniTimer` lifecycl
 
 ## 4. Why disabled `hidesOnDeactivate` on `MenuBarPanel`?
 Because `LSUIElement` apps are usually deactivated. Setting `hidesOnDeactivate = true` causes the Window Server to instantly suppress the panel upon creation because it assumes the window should not be visible while the app is inactive.
+
+## 5. Why does `cycleAccumulatedWork` use `engine.accumulatedSeconds` rather than summing history fragments?
+Session splits (`accumulatedDurationAtLastSplit`) exist purely to produce non-overlapping history records. The engine's `accumulatedDuration` is never reset by a split — it grows continuously from the moment Flow begins until Flow ends. Using `engineSnapshot.accumulatedSeconds` therefore captures the correct total elapsed work time in one value, with no risk of omitting pre-split time. Subtracting `accumulatedDurationAtLastSplit` would cause an undercount. See **ADR-009** for the full execution trace.
+
+## 6. Why does skipping a Flow Extension not credit cycle work?
+Skip is treated as session abandonment, consistent with skipping a Focus session (which also earns zero cycle credit). Only a "Take Break" action terminates Flow naturally and commits work toward Long Break eligibility. This follows the product rule: *only naturally completed work earns Long Break credit.* The user still receives a correctly-sized adaptive break. See **ADR-009** for the full rationale and the code locations to change if this decision is ever revisited.
+
+## 7. Long Break Cycle Redesign
+The Long Break system was redesigned from a session-count model to a work-duration model in full. The complete feature specification, state model, accumulation rules, dot behaviour, persistence contract, and verified design decisions are documented in `docs/long-break-cycle-redesign.md`.

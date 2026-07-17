@@ -1,6 +1,8 @@
 import SwiftUI
 import AppKit
+import Foundation
 import Observation
+import Combine
 
 enum FlowWellnessState {
     case coffee
@@ -29,11 +31,27 @@ final class TimerManager {
     var state: TimerState = .idle
     var phase: TimerPhase = .work
     var phaseInstanceID: UUID = UUID()
+    var hasTriggeredFlowTransition: Bool = false
     var flowTransitionID: UUID?
+    
+    // Recovery
+    /// Fires once at wake for any surface currently subscribed. Surfaces opened
+    /// after the event fires never receive it — PassthroughSubject has no memory.
+    let recoveryEventPublisher = PassthroughSubject<RecoveryEvent, Never>()
+    private var sleepTimestamp: Date? = nil
+    
     var recentAdaptiveBreakPayload: AdaptiveBreakPayload?
-    private var hasTriggeredFlowTransition = false
     private var currentPhaseRemainingSeconds: Int = 0
     private var currentSessionPauseCount: Int = 0
+    private var isTransitioningPhase: Bool = false
+
+    // Cycle work tracking — used ONLY for Long Break eligibility and progress dots.
+    // Completely independent of currentSession / completedSessions.
+    private(set) var cycleAccumulatedWork: Int = 0  // seconds; Focus + Flow only
+    private(set) var longBreakUnlocked: Bool = false
+    // Shadow values used to detect settings changes that require a cycle reset.
+    private var lastKnownWorkDuration: Int = 0
+    private var lastKnownSessionsPerCycle: Int = 0
     
     // Gap-check tracking
     private var lastPausedAt: Date?
@@ -44,6 +62,30 @@ final class TimerManager {
     var flowExtensionElapsedSeconds: Double {
         guard phase == .flowExtension else { return 0 }
         return Double(currentPhaseDuration)
+    }
+
+    /// Total work seconds that must accumulate before a Long Break is earned.
+    var cycleTargetWorkDuration: Int {
+        settings.workDuration * settings.sessionsPerCycle
+    }
+
+    /// Number of fully completed work segments in the current cycle.
+    /// Clamped to [0, sessionsPerCycle] — can never overflow.
+    var cycleCompletedSegments: Int {
+        min(cycleAccumulatedWork / max(1, settings.workDuration), settings.sessionsPerCycle)
+    }
+
+    /// Completed segments for the progress dot display **only**.
+    /// During Flow Extension the live elapsed seconds are added so dots advance
+    /// as segment boundaries are crossed mid-Flow — matching the user's lived
+    /// experience of working toward the next segment.
+    ///
+    /// `cycleAccumulatedWork` is still committed only when Flow ends; this
+    /// value never influences Long Break eligibility or persistence.
+    var cycleDisplayedSegments: Int {
+        let liveFlowWork = phase == .flowExtension ? currentPhaseDuration : 0
+        return min((cycleAccumulatedWork + liveFlowWork) / max(1, settings.workDuration),
+                   settings.sessionsPerCycle)
     }
     
     var canResetCycle: Bool {
@@ -179,6 +221,8 @@ final class TimerManager {
         self.currentPhaseRemainingSeconds = manager.settings.workDuration
         self.remainingTimeFormatted = TimeFormatter.format(seconds: manager.settings.workDuration)
         self.engine = TimerEngine(durationInSeconds: manager.settings.workDuration)
+        self.lastKnownWorkDuration = manager.settings.workDuration
+        self.lastKnownSessionsPerCycle = manager.settings.sessionsPerCycle
         
         
         Task { [weak self] in
@@ -186,14 +230,16 @@ final class TimerManager {
         }
         
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.pause()
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if self.sleepTimestamp == nil {
+                    self.sleepTimestamp = Date()
+                }
+                self.pause()
             }
         }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.handleWake()
-            }
+            self?.performRecoveryIfNeeded()
         }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -208,13 +254,60 @@ final class TimerManager {
         }
     }
     
-    private func handleWake() {
+    func performRecoveryIfNeeded() {
         Task { [weak self] in
             guard let self else { return }
+            guard let sleepTime = self.sleepTimestamp else { return }
+            
+            let now = Date()
+            let elapsed = now.timeIntervalSince(sleepTime)
+            self.sleepTimestamp = nil
+            
+            // Finalise any session fragment that spanned the pause gap
             if let pauseTime = self.lastPausedAt {
-                let now = Date()
                 await self.processPauseGap(pauseTime: pauseTime, resumeTime: now)
-                self.lastPausedAt = now
+                self.lastPausedAt = nil
+            }
+            
+            switch self.phase {
+            case .work:
+                // Focus: resume exactly where paused — no message needed
+                break
+                
+            case .flowExtension:
+                if elapsed <= 10.0 {
+                    // Brief interruption — resume flow silently
+                    await self.engine.resume()
+                } else {
+                    // Long interruption — end flow, cascade into break evaluation
+                    await self.takeBreakAsync()
+                    
+                    let breakElapsed = elapsed - 10.0
+                    let remaining = await self.engine.remainingSeconds
+                    let elapsedInt = Int(breakElapsed)
+
+                    if elapsedInt < remaining {
+                        await self.engine.addElapsedSeconds(Double(elapsedInt))
+                        await self.engine.resume()
+                        self.recoveryEventPublisher.send(.breakResumed)
+                    } else {
+                        self.recoveryEventPublisher.send(.breakCompleted)
+                        self.handlePhaseCompletion()
+                    }
+                }
+                
+            case .shortBreak, .longBreak:
+                let remaining = await self.engine.remainingSeconds
+                let elapsedInt = Int(elapsed)
+                
+                if elapsedInt < remaining {
+                    await self.engine.addElapsedSeconds(Double(elapsedInt))
+                    await self.engine.resume()
+                    self.recoveryEventPublisher.send(.breakResumed)
+                } else {
+                    self.recoveryEventPublisher.send(.breakCompleted)
+                    self.handlePhaseCompletion()
+                }
             }
         }
     }
@@ -230,7 +323,9 @@ final class TimerManager {
                 sessionTitle: customSessionTitle,
                 lastPausedAt: lastPausedAt,
                 lastSessionFragmentID: lastSessionFragmentID,
-                accumulatedDurationAtLastSplit: accumulatedDurationAtLastSplit
+                accumulatedDurationAtLastSplit: accumulatedDurationAtLastSplit,
+                cycleAccumulatedWork: cycleAccumulatedWork,
+                longBreakUnlocked: longBreakUnlocked
             )
             
             if let data = try? JSONEncoder().encode(snapshot) {
@@ -242,8 +337,19 @@ final class TimerManager {
     func settingsDidChange() {
         Task { [weak self] in
             guard let self else { return }
-            
-            // Only apply settings to the current session if it hasn't started yet.
+
+            // Reset the cycle whenever the work parameters that define the cycle target change.
+            // This must run regardless of timer state.
+            let workDurationChanged = self.settings.workDuration != self.lastKnownWorkDuration
+            let sessionsChanged = self.settings.sessionsPerCycle != self.lastKnownSessionsPerCycle
+            if workDurationChanged || sessionsChanged {
+                self.cycleAccumulatedWork = 0
+                self.longBreakUnlocked = false
+                self.lastKnownWorkDuration = self.settings.workDuration
+                self.lastKnownSessionsPerCycle = self.settings.sessionsPerCycle
+            }
+
+            // Only apply new durations to the current session if it hasn’t started yet.
             guard self.state == .idle else { return }
             
             let duration: Int
@@ -348,6 +454,10 @@ final class TimerManager {
             self.lastPausedAt = snapshot.lastPausedAt
             self.lastSessionFragmentID = snapshot.lastSessionFragmentID
             self.accumulatedDurationAtLastSplit = snapshot.accumulatedDurationAtLastSplit ?? 0
+            self.cycleAccumulatedWork = snapshot.cycleAccumulatedWork
+            self.longBreakUnlocked = snapshot.longBreakUnlocked
+            self.lastKnownWorkDuration = settings.workDuration
+            self.lastKnownSessionsPerCycle = settings.sessionsPerCycle
             
             await engine.restore(from: snapshot.engineSnapshot)
             
@@ -383,6 +493,10 @@ final class TimerManager {
     }
     
     private func advanceToNextPhase(isSkip: Bool = false) async {
+        guard !isTransitioningPhase else { return }
+        isTransitioningPhase = true
+        defer { isTransitioningPhase = false }
+        
         lastPausedAt = nil
         lastSessionFragmentID = nil
         accumulatedDurationAtLastSplit = 0
@@ -390,7 +504,9 @@ final class TimerManager {
         switch phase {
         case .work:
             if isSkip {
-                if currentSession >= totalSessions {
+                if longBreakUnlocked {
+                    cycleAccumulatedWork = 0
+                    longBreakUnlocked = false
                     currentPhaseDuration = settings.longBreakDuration
                     self.currentPhaseRemainingSeconds = settings.longBreakDuration
                     await engine.setPhase(.longBreak, direction: .countdown)
@@ -432,21 +548,23 @@ final class TimerManager {
             let configuredWorkDuration = max(1, settings.workDuration) // Prevent division by zero
             let flowExtensionDuration = max(0, currentPhaseDuration)
             let totalWorkTime = configuredWorkDuration + flowExtensionDuration
-            
-            if currentSession >= totalSessions {
-                let configuredBreakDuration = settings.longBreakDuration
-                
-                currentPhaseDuration = configuredBreakDuration
-                self.currentPhaseRemainingSeconds = configuredBreakDuration
+
+            if longBreakUnlocked {
+                // Cycle target was reached — award the Long Break and reset the cycle.
+                cycleAccumulatedWork = 0
+                longBreakUnlocked = false
+                currentPhaseDuration = settings.longBreakDuration
+                self.currentPhaseRemainingSeconds = settings.longBreakDuration
                 await engine.setPhase(.longBreak, direction: .countdown)
-                await engine.setDuration(configuredBreakDuration)
+                await engine.setDuration(settings.longBreakDuration)
             } else {
+                // Cycle target not yet reached — compute adaptive short break.
                 let configuredBreakDuration = settings.shortBreakDuration
                 let exactAdaptiveBreakDuration = Double(totalWorkTime) * Double(configuredBreakDuration) / Double(configuredWorkDuration)
                 let roundedMinutes = (exactAdaptiveBreakDuration / 60.0).rounded()
                 let adaptiveBreakDuration = Int(roundedMinutes * 60.0)
-                
                 let extraBreakSeconds = adaptiveBreakDuration - configuredBreakDuration
+
                 if extraBreakSeconds >= 60 {
                     let totalWorkMins = Int((Double(totalWorkTime) / 60.0).rounded())
                     let extraBreakMins = Int((Double(extraBreakSeconds) / 60.0).rounded())
@@ -454,7 +572,7 @@ final class TimerManager {
                 } else {
                     self.recentAdaptiveBreakPayload = nil
                 }
-                
+
                 currentPhaseDuration = adaptiveBreakDuration
                 self.currentPhaseRemainingSeconds = adaptiveBreakDuration
                 await engine.setPhase(.shortBreak, direction: .countdown)
@@ -497,6 +615,9 @@ final class TimerManager {
             
             switch self.phase {
             case .work:
+                // Accumulate the completed Focus session toward the cycle target.
+                self.cycleAccumulatedWork += self.settings.workDuration
+                self.checkLongBreakUnlock()
                 NotificationManager.shared.sendNotification(
                     title: "Work Session Complete",
                     body: "Flow Extension started.\nTake a break whenever you're ready."
@@ -511,18 +632,66 @@ final class TimerManager {
         }
     }
     
+    /// Async counterpart to takeBreak(), used by performRecoveryIfNeeded so the
+    /// phase transition fully completes (via await) before recovery evaluates
+    /// the resulting break state.
+    private func takeBreakAsync() async {
+        await engine.pause()
+
+        if let pauseTime = self.lastPausedAt {
+            await self.processPauseGap(pauseTime: pauseTime, resumeTime: Date())
+        }
+
+        let engineSnapshot = await engine.snapshot()
+        let fragmentDuration = engineSnapshot.accumulatedSeconds - self.accumulatedDurationAtLastSplit
+
+        if let startDate = currentPhaseStartDate, fragmentDuration > 0 {
+            let record = SessionRecord(
+                id: UUID(),
+                phase: .flowExtension,
+                startDate: startDate,
+                endDate: Date(),
+                duration: fragmentDuration,
+                tag: currentTag,
+                pauseCount: currentSessionPauseCount,
+                continuationOf: lastSessionFragmentID,
+                termination: .natural
+            )
+            HistoryManager.shared.addSession(record)
+        }
+
+        self.currentPhaseStartDate = nil
+        self.lastPausedAt = nil
+        self.lastSessionFragmentID = nil
+        self.accumulatedDurationAtLastSplit = 0
+
+        // Accumulate the entire Flow session toward the cycle target.
+        // engineSnapshot.accumulatedSeconds is the total engine time since Flow began.
+        // This is read BEFORE advanceToNextPhase overwrites currentPhaseDuration.
+        let totalFlowElapsed = Int(engineSnapshot.accumulatedSeconds.rounded())
+        cycleAccumulatedWork += totalFlowElapsed
+        checkLongBreakUnlock()
+
+        NotificationManager.shared.sendNotification(
+            title: "Flow Extension Complete",
+            body: "Starting your break."
+        )
+
+        await self.advanceToNextPhase(isSkip: false)
+    }
+    
     func takeBreak() {
         Task { [weak self] in
             guard let self else { return }
             await engine.pause()
-            
+
             if let pauseTime = self.lastPausedAt {
                 await self.processPauseGap(pauseTime: pauseTime, resumeTime: Date())
             }
-            
+
             let engineSnapshot = await engine.snapshot()
             let fragmentDuration = engineSnapshot.accumulatedSeconds - self.accumulatedDurationAtLastSplit
-            
+
             if let startDate = currentPhaseStartDate, fragmentDuration > 0 {
                 let record = SessionRecord(
                     id: UUID(),
@@ -537,17 +706,24 @@ final class TimerManager {
                 )
                 HistoryManager.shared.addSession(record)
             }
-            
+
             self.currentPhaseStartDate = nil
             self.lastPausedAt = nil
             self.lastSessionFragmentID = nil
             self.accumulatedDurationAtLastSplit = 0
-            
+
+            // Accumulate the entire Flow session toward the cycle target.
+            // engineSnapshot.accumulatedSeconds is the total engine time since Flow began.
+            // This is read BEFORE advanceToNextPhase overwrites currentPhaseDuration.
+            let totalFlowElapsed = Int(engineSnapshot.accumulatedSeconds.rounded())
+            self.cycleAccumulatedWork += totalFlowElapsed
+            self.checkLongBreakUnlock()
+
             NotificationManager.shared.sendNotification(
                 title: "Flow Extension Complete",
                 body: "Starting your break."
             )
-            
+
             await self.advanceToNextPhase(isSkip: false)
         }
     }
@@ -664,12 +840,14 @@ final class TimerManager {
         Task { [weak self] in
             guard let self else { return }
             await self.engine.pause()
-            
+
             // Finalize the partial session directly using real elapsed time
             await self.finalizePartialSession(termination: .reset, setContinuation: false, forcePauseTime: self.lastPausedAt)
-            
+
             // Reset to cycle 1 completely
             self.currentSession = 1
+            self.cycleAccumulatedWork = 0
+            self.longBreakUnlocked = false
             self.phase = .work
             self.currentPhaseStartDate = nil
             self.currentPhaseDuration = settings.workDuration
@@ -678,9 +856,19 @@ final class TimerManager {
             self.lastSessionFragmentID = nil
             self.accumulatedDurationAtLastSplit = 0
             self.currentSessionPauseCount = 0
-            
+
             await engine.setPhase(.work, direction: .countdown)
             await engine.setDuration(settings.workDuration)
+        }
+    }
+
+    /// Sets `longBreakUnlocked` when the cycle target is first reached.
+    /// Called after every accumulation to `cycleAccumulatedWork`.
+    /// Silent — no notification, no interruption, no UI change beyond the dots.
+    private func checkLongBreakUnlock() {
+        guard !longBreakUnlocked else { return }
+        if cycleAccumulatedWork >= cycleTargetWorkDuration {
+            longBreakUnlocked = true
         }
     }
 }

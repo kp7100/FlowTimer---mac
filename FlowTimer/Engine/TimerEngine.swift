@@ -125,6 +125,11 @@ actor TimerEngine {
     
     // MARK: - Snapshot & Restore
     
+    func addElapsedSeconds(_ seconds: Double) {
+        accumulatedDuration += .seconds(seconds)
+        publishTick()
+    }
+    
     func snapshot() -> EngineSnapshot {
         let elapsed = totalElapsed
         let elapsedSeconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18

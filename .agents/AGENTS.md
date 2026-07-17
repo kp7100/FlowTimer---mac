@@ -28,3 +28,12 @@ Do not update AGENTS.md automatically. Instead:
 
 Do not add feature-specific, temporary, or one-off rules.
 
+### Commit & Push Policy
+
+- Never create a Git commit unless I explicitly ask you to commit.
+- Never run `git push` unless I explicitly say "git push", "push", or otherwise clearly authorize pushing.
+- Completing a coding task does NOT imply permission to commit or push.
+- After finishing work, suggest an atomic commit message and wait for my approval.
+- After committing, wait again for explicit approval before pushing.
+
+

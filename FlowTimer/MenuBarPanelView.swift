@@ -186,6 +186,12 @@ struct SettingsMenuView: View {
     var body: some View {
         Group {
             Menu("Work Duration") {
+                Toggle("30 sec (Testing)", isOn: Binding(
+                    get: { settings.workDuration == 30 },
+                    set: { if $0 { SettingsManager.shared.settings.workDuration = 30 } }
+                ))
+                Divider()
+                
                 let workPresets = [15, 20, 25, 30, 45, 60]
                 let currentWork = settings.workDuration / 60
                 let isWorkCustom = !workPresets.contains(currentWork)
@@ -214,6 +220,12 @@ struct SettingsMenuView: View {
             
             Menu("Break Duration") {
                 Menu("Short Break") {
+                    Toggle("30 sec (Testing)", isOn: Binding(
+                        get: { settings.shortBreakDuration == 30 },
+                        set: { if $0 { SettingsManager.shared.settings.shortBreakDuration = 30 } }
+                    ))
+                    Divider()
+                    
                     let shortPresets = [3, 5, 10, 15]
                     let currentShort = settings.shortBreakDuration / 60
                     let isShortCustom = !shortPresets.contains(currentShort)

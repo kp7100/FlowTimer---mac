@@ -75,6 +75,7 @@ struct CompactTimerView: View {
         .frame(width: 210, height: 105)
         .ignoresSafeArea()
         .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
+        .sessionRecoveryTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark, isCompactMode: true)
         .onHover { hover in
             isHoveringWindow = hover
         }

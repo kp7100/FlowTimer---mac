@@ -68,7 +68,7 @@ struct StatisticsHeroCard: View {
 struct StatisticsGoalCard: View {
     let stats: PeriodStats
     let period: StatisticsPeriod
-    let selectedDate: Date
+    let dailyDurations: [TimeInterval]
     
     var body: some View {
         let settings = SettingsManager.shared.settings
@@ -122,9 +122,8 @@ struct StatisticsGoalCard: View {
                             .foregroundColor(.secondary)
                         
                         GoalConsistencyVisualizer(
-                            stats: stats,
                             period: period,
-                            date: selectedDate,
+                            dailyDurations: dailyDurations,
                             goalFocusTime: target
                         )
                         .padding(.vertical, 4)
@@ -143,30 +142,18 @@ struct StatisticsGoalCard: View {
 }
 
 struct GoalConsistencyVisualizer: View {
-    let stats: PeriodStats
     let period: StatisticsPeriod
-    let date: Date
+    let dailyDurations: [TimeInterval]
     let goalFocusTime: TimeInterval
     
     var body: some View {
-        let calendar = Calendar.current
-        let interval = calendar.dateInterval(of: period, for: date)
-        let numDays = stats.totalDaysInPeriod
-        
-        var dailyMins = Array(repeating: 0.0, count: numDays)
-        for record in stats.focusRecords {
-            if let daysSinceStart = calendar.dateComponents([.day], from: interval.start, to: calendar.startOfDay(for: record.endDate)).day {
-                if daysSinceStart >= 0 && daysSinceStart < numDays {
-                    dailyMins[daysSinceStart] += record.duration
-                }
-            }
-        }
+        let numDays = dailyDurations.count
         
         let cols = Array(repeating: GridItem(.fixed(8), spacing: 6), count: period == .month ? 10 : 7)
         
         return LazyVGrid(columns: cols, alignment: .leading, spacing: 6) {
             ForEach(0..<numDays, id: \.self) { i in
-                let met = dailyMins[i] >= goalFocusTime
+                let met = dailyDurations[i] >= goalFocusTime
                 Circle()
                     .fill(met ? Color.accentColor : Color.secondary.opacity(0.15))
                     .frame(width: 8, height: 8)

@@ -8,6 +8,23 @@ final class FocusTaskManager {
     static let shared = FocusTaskManager()
     private let userDefaultsKey = "FlowTimerFocusTasks"
     private var allTasks: [FocusTask] = []
+
+    // Derived task data is rebuilt only after a task mutation or when the
+    // current focus day changes. The cached arrays preserve the existing
+    // two-stage ordering used by the view and move actions.
+    private var cachedTodayTasks: [FocusTask] = []
+    private var cachedSortedTasks: [FocusTask] = []
+    private var cachedTasksFocusDay: String?
+    private var derivedTasksAreValid = false
+
+    private struct FocusDayCacheContext: Equatable {
+        let referenceDay: Date
+        let resetHour: Int
+        let calendar: Calendar
+    }
+
+    private var cachedFocusDayContext: FocusDayCacheContext?
+    private var cachedFocusDayKey: String?
     
     // Dependencies
     private let settingsManager: SettingsManager
@@ -39,25 +56,53 @@ final class FocusTaskManager {
     }
     
     var currentFocusDay: String {
-        FocusTaskManager.currentFocusDayKey(
-            now: Date(),
-            resetHour: settingsManager.settings.focusTaskResetHour,
-            calendar: Calendar.current
+        let now = Date()
+        let resetHour = settingsManager.settings.focusTaskResetHour
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: now)
+        let referenceDate = hour < resetHour
+            ? calendar.date(byAdding: .day, value: -1, to: now) ?? now
+            : now
+        let context = FocusDayCacheContext(
+            referenceDay: calendar.startOfDay(for: referenceDate),
+            resetHour: resetHour,
+            calendar: calendar
         )
+
+        if cachedFocusDayContext == context, let cachedFocusDayKey {
+            return cachedFocusDayKey
+        }
+
+        let dayKey = FocusTaskManager.currentFocusDayKey(
+            now: now,
+            resetHour: resetHour,
+            calendar: calendar
+        )
+        cachedFocusDayContext = context
+        cachedFocusDayKey = dayKey
+        return dayKey
     }
     
-    // Computed property returning only active tasks for the current focus day, sorted by order
+    // Cached task data for the current focus day, sorted by order.
     var todayTasks: [FocusTask] {
-        allTasks
-            .filter { $0.focusDay == currentFocusDay }
-            .sorted { $0.order < $1.order }
+        let dayKey = currentFocusDay
+        ensureDerivedTasks(for: dayKey)
+        return cachedTodayTasks
+    }
+
+    // Cached display ordering: incomplete tasks first, completed tasks second.
+    var sortedTasks: [FocusTask] {
+        let dayKey = currentFocusDay
+        ensureDerivedTasks(for: dayKey)
+        return cachedSortedTasks
     }
     
     // MARK: - Core Logic
     
     func addTask(text: String, explicitTagId: UUID? = nil) {
         let dayKey = currentFocusDay
-        let currentCount = allTasks.filter { $0.focusDay == dayKey }.count
+        ensureDerivedTasks(for: dayKey)
+        let currentCount = cachedTodayTasks.count
         
         guard currentCount < 3 else { return }
         
@@ -80,6 +125,7 @@ final class FocusTaskManager {
         )
         
         allTasks.append(newTask)
+        invalidateDerivedTasks()
         saveTasks()
     }
     
@@ -93,7 +139,10 @@ final class FocusTaskManager {
             return
         }
         
-        allTasks[index].text = parsedText
+        if allTasks[index].text != parsedText {
+            allTasks[index].text = parsedText
+            invalidateDerivedTasks()
+        }
         // Note: updateText no longer manipulates the tag. Tags are set explicitly via setTag.
         
         saveTasks()
@@ -101,7 +150,10 @@ final class FocusTaskManager {
     
     func setTag(id: UUID, tagName: String?) {
         guard let globalIndex = allTasks.firstIndex(where: { $0.id == id }) else { return }
-        allTasks[globalIndex].tagName = tagName
+        if allTasks[globalIndex].tagName != tagName {
+            allTasks[globalIndex].tagName = tagName
+            invalidateDerivedTasks()
+        }
         saveTasks()
     }
     
@@ -109,6 +161,7 @@ final class FocusTaskManager {
         guard let index = allTasks.firstIndex(where: { $0.id == id }) else { return }
         allTasks[index].isCompleted.toggle()
         allTasks[index].completedAt = allTasks[index].isCompleted ? Date() : nil
+        invalidateDerivedTasks()
         saveTasks()
     }
     
@@ -118,6 +171,7 @@ final class FocusTaskManager {
         
         allTasks.removeAll(where: { $0.id == id })
         reindexTasks(for: dayKey)
+        invalidateDerivedTasks()
         saveTasks()
     }
     
@@ -125,10 +179,17 @@ final class FocusTaskManager {
         var dayTasks = todayTasks
         dayTasks.move(fromOffsets: source, toOffset: destination)
         
+        var orderChanged = false
         for (newOrder, task) in dayTasks.enumerated() {
             if let globalIndex = allTasks.firstIndex(where: { $0.id == task.id }) {
-                allTasks[globalIndex].order = newOrder
+                if allTasks[globalIndex].order != newOrder {
+                    allTasks[globalIndex].order = newOrder
+                    orderChanged = true
+                }
             }
+        }
+        if orderChanged {
+            invalidateDerivedTasks()
         }
         saveTasks()
     }
@@ -145,6 +206,7 @@ final class FocusTaskManager {
             let temp = allTasks[g1].order
             allTasks[g1].order = allTasks[g2].order
             allTasks[g2].order = temp
+            invalidateDerivedTasks()
             saveTasks()
         }
     }
@@ -161,6 +223,7 @@ final class FocusTaskManager {
             let temp = allTasks[g1].order
             allTasks[g1].order = allTasks[g2].order
             allTasks[g2].order = temp
+            invalidateDerivedTasks()
             saveTasks()
         }
     }
@@ -179,6 +242,33 @@ final class FocusTaskManager {
         }
     }
 
+    // MARK: - Derived Task Cache
+
+    private func ensureDerivedTasks(for dayKey: String) {
+        guard !derivedTasksAreValid || cachedTasksFocusDay != dayKey else { return }
+
+        let dayTasks = allTasks
+            .filter { $0.focusDay == dayKey }
+            .sorted { $0.order < $1.order }
+
+        let incomplete = dayTasks
+            .filter { !$0.isCompleted }
+            .sorted { $0.order < $1.order }
+        let complete = dayTasks
+            .filter { $0.isCompleted }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+
+        cachedTodayTasks = dayTasks
+        cachedSortedTasks = incomplete + complete
+        cachedTasksFocusDay = dayKey
+        derivedTasksAreValid = true
+    }
+
+    private func invalidateDerivedTasks() {
+        derivedTasksAreValid = false
+        cachedTasksFocusDay = nil
+    }
+
     // MARK: - Persistence
     
     private func saveTasks() {
@@ -192,5 +282,6 @@ final class FocusTaskManager {
            let savedTasks = try? JSONDecoder().decode([FocusTask].self, from: data) {
             self.allTasks = savedTasks
         }
+        invalidateDerivedTasks()
     }
 }

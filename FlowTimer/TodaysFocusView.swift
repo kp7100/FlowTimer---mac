@@ -7,15 +7,11 @@ struct TodaysFocusView: View {
     @Environment(\.ambientTheme) var theme
     @State private var hoveredTaskId: UUID? = nil
     
-    var sortedTasks: [FocusTask] {
-        let incomplete = taskManager.todayTasks.filter { !$0.isCompleted }.sorted { $0.order < $1.order }
-        let complete = taskManager.todayTasks.filter { $0.isCompleted }.sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
-        return incomplete + complete
-    }
-    
     var body: some View {
+        let sortedTasks = taskManager.sortedTasks
+        let incomplete = sortedTasks.filter { !$0.isCompleted }
+
         VStack(spacing: 0) {
-            let incomplete = sortedTasks.filter { !$0.isCompleted }
             ForEach(sortedTasks) { task in
                 FocusTaskRowView(
                     task: task,

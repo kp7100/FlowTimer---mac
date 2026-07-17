@@ -3,8 +3,7 @@ import Charts
 
 struct StatisticsChartCard: View {
     let period: StatisticsPeriod
-    let date: Date
-    let focusRecords: [SessionRecord]
+    let data: [ChartDataPoint]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -17,8 +16,6 @@ struct StatisticsChartCard: View {
                     .foregroundColor(.secondary)
             }
             .padding(.leading, 4)
-            
-            let data = getChartData()
             
             if data.isEmpty || data.allSatisfy({ $0.value == 0 }) {
                 VStack(spacing: 8) {
@@ -98,7 +95,7 @@ struct StatisticsChartCard: View {
         .modifier(CardModifier())
     }
     
-    private func getChartData() -> [ChartDataPoint] {
+    static func makeData(period: StatisticsPeriod, date: Date, focusRecords: [SessionRecord]) -> [ChartDataPoint] {
         let calendar = Calendar.current
         
         switch period {
