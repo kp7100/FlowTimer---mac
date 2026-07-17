@@ -132,6 +132,28 @@ private func checkLongBreakUnlock() {
 
 ---
 
+## Cycle Submenu UX
+
+To keep the settings menu clean while still helping the user understand their cycle setting, the Cycle submenu (a nested `Menu` containing checkmarked `Toggle`s) displays the total accumulated work duration (`workDuration * count`) **only for the currently selected option**. All other options show just their session count. This follows the principle of progressive disclosure.
+
+### Implementation Details
+
+SwiftUI's native `Picker` on macOS flattens custom views (such as `HStack` layouts or text alignment spacers) when building native `NSMenu` rows, rendering them in plain text.
+
+To bypass this and achieve the desired metadata presentation natively, the Cycle selector is implemented as a nested SwiftUI `Menu` containing `Toggle` items. A `Toggle` inside a menu natively renders as a checkmarked menu item.
+
+### Attributed Title Formatting
+
+- The selected number remains the primary visual element.
+- The duration is metadata, displayed on the far right using a tab character (`\t`) inside a concatenated `Text` view:
+  ```swift
+  Text("\(count)") + Text("\t•  \(duration)").foregroundColor(.secondary)
+  ```
+- AppKit interprets the tab character (`\t`) to place the metadata on the far right.
+- Text concatenation translates to an `NSAttributedString` inside the native `NSMenuItem.attributedTitle`, which correctly renders the secondary foreground color for the metadata without affecting the primary number's appearance or row height.
+
+---
+
 ## What Counts Toward the Cycle
 
 ### Focus completion

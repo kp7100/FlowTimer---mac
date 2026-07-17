@@ -62,6 +62,10 @@ struct FocusTaskRowView: View {
         HStack(spacing: 12) {
             Button(action: {
                 taskManager.toggleCompletion(id: task.id)
+                if !task.isCompleted, timerManager.customSessionTitle == task.text {
+                    NotificationCenter.default.post(name: .sessionTitleCompleted, object: task.text)
+                    timerManager.customSessionTitle = nil
+                }
             }) {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 19, weight: .medium))

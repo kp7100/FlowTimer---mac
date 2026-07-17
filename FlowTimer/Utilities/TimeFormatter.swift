@@ -23,4 +23,21 @@ enum TimeFormatter {
             return "\(minutes)m"
         }
     }
+    
+    static func formatCompactCycleDuration(seconds: Int) -> String {
+        let maxSeconds = max(0, seconds)
+        let minutes = maxSeconds / 60
+        let h = minutes / 60
+        let m = minutes % 60
+        
+        if h > 0 {
+            if m > 0 {
+                return String(format: "%dh%02d", h, m)
+            } else {
+                return "\(h)h"
+            }
+        } else {
+            return "\(m)m"
+        }
+    }
 }

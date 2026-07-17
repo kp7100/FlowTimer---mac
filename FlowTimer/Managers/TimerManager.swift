@@ -52,6 +52,8 @@ final class TimerManager {
     // Shadow values used to detect settings changes that require a cycle reset.
     private var lastKnownWorkDuration: Int = 0
     private var lastKnownSessionsPerCycle: Int = 0
+    private var lastKnownShortBreakDuration: Int = 0
+    private var lastKnownLongBreakDuration: Int = 0
     
     // Gap-check tracking
     private var lastPausedAt: Date?
@@ -75,17 +77,29 @@ final class TimerManager {
         min(cycleAccumulatedWork / max(1, settings.workDuration), settings.sessionsPerCycle)
     }
 
-    /// Completed segments for the progress dot display **only**.
-    /// During Flow Extension the live elapsed seconds are added so dots advance
-    /// as segment boundaries are crossed mid-Flow — matching the user's lived
-    /// experience of working toward the next segment.
-    ///
-    /// `cycleAccumulatedWork` is still committed only when Flow ends; this
-    /// value never influences Long Break eligibility or persistence.
-    var cycleDisplayedSegments: Int {
-        let liveFlowWork = phase == .flowExtension ? currentPhaseDuration : 0
-        return min((cycleAccumulatedWork + liveFlowWork) / max(1, settings.workDuration),
-                   settings.sessionsPerCycle)
+    /// Live work seconds accumulated in the current phase that haven't been committed to cycleAccumulatedWork yet.
+    var liveWorkSeconds: Int {
+        if phase == .work {
+            return max(0, settings.workDuration - currentPhaseRemainingSeconds)
+        } else if phase == .flowExtension {
+            return max(0, currentPhaseDuration)
+        }
+        return 0
+    }
+
+    /// Progress from 0.0 to 1.0 for the segment at the given index.
+    func progress(forSegment index: Int) -> Double {
+        let totalWork = Double(cycleAccumulatedWork + liveWorkSeconds)
+        let target = Double(max(1, settings.workDuration))
+        let milestoneStart = Double(index) * target
+        
+        if totalWork <= milestoneStart {
+            return 0.0
+        } else if totalWork >= milestoneStart + target {
+            return 1.0
+        } else {
+            return (totalWork - milestoneStart) / target
+        }
     }
     
     var canResetCycle: Bool {
@@ -338,34 +352,24 @@ final class TimerManager {
         Task { [weak self] in
             guard let self else { return }
 
-            // Reset the cycle whenever the work parameters that define the cycle target change.
-            // This must run regardless of timer state.
             let workDurationChanged = self.settings.workDuration != self.lastKnownWorkDuration
             let sessionsChanged = self.settings.sessionsPerCycle != self.lastKnownSessionsPerCycle
-            if workDurationChanged || sessionsChanged {
-                self.cycleAccumulatedWork = 0
-                self.longBreakUnlocked = false
+            let shortBreakChanged = self.settings.shortBreakDuration != self.lastKnownShortBreakDuration
+            let longBreakChanged = self.settings.longBreakDuration != self.lastKnownLongBreakDuration
+            
+            let durationOrCycleChanged = workDurationChanged || sessionsChanged || shortBreakChanged || longBreakChanged
+
+            if durationOrCycleChanged {
                 self.lastKnownWorkDuration = self.settings.workDuration
                 self.lastKnownSessionsPerCycle = self.settings.sessionsPerCycle
-            }
-
-            // Only apply new durations to the current session if it hasn’t started yet.
-            guard self.state == .idle else { return }
-            
-            let duration: Int
-            switch self.phase {
-            case .work: duration = self.settings.workDuration
-            case .shortBreak: duration = self.settings.shortBreakDuration
-            case .longBreak: duration = self.settings.longBreakDuration
-            case .flowExtension: duration = self.settings.workDuration
-            }
-            
-            if duration != self.currentPhaseDuration {
-                await self.engine.updateDuration(duration)
-                let newRemaining = await self.engine.remainingSeconds
-                self.currentPhaseDuration = await self.engine.totalSeconds
-                self.currentPhaseRemainingSeconds = newRemaining
-                self.remainingTimeFormatted = TimeFormatter.format(seconds: newRemaining)
+                self.lastKnownShortBreakDuration = self.settings.shortBreakDuration
+                self.lastKnownLongBreakDuration = self.settings.longBreakDuration
+                
+                // Completely reset the timer state using resetCycle which finalizes the session and resets the cycle
+                self.resetCycle()
+                
+                // Ensure state returns to idle for a fresh session
+                self.state = .idle
                 self.saveState()
             }
         }

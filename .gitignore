@@ -3,6 +3,7 @@
 main
 test_history
 test_store
+scratch/
 
 # IDE and System Files
 .DS_Store

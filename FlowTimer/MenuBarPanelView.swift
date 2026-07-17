@@ -282,15 +282,7 @@ struct SettingsMenuView: View {
             
             Divider()
             
-            Picker("Cycle", selection: Binding(
-                get: { SettingsManager.shared.settings.sessionsPerCycle },
-                set: { SettingsManager.shared.settings.sessionsPerCycle = $0 }
-            )) {
-                ForEach(1...10, id: \.self) { count in
-                    Text("\(count)").tag(count)
-                }
-            }
-            .pickerStyle(.menu)
+            CycleMenu(settings: settings)
             
             Menu("Flow Extension Limit") {
                 let flowPresets = [5, 10, 15, 20, 30]
@@ -495,5 +487,32 @@ struct CustomDailyGoalSheet: View {
         }
         .padding()
         .frame(width: 250)
+    }
+}
+
+struct CycleMenu: View {
+    let settings: TimerSettings
+    
+    var body: some View {
+        Menu("Cycle") {
+            let selectedCycle = SettingsManager.shared.settings.sessionsPerCycle
+            let durationStr = TimeFormatter.formatForStats(seconds: TimeInterval(settings.workDuration * selectedCycle))
+            
+            (Text("Long Break").font(.headline) + 
+             Text("\nAfter \(durationStr)").font(.subheadline).foregroundColor(.secondary))
+            
+            Divider()
+            
+            Picker("", selection: Binding(
+                get: { selectedCycle },
+                set: { SettingsManager.shared.settings.sessionsPerCycle = $0 }
+            )) {
+                ForEach(1...10, id: \.self) { count in
+                    Text("\(count)").tag(count)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        }
     }
 }
