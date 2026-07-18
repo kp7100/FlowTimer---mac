@@ -4,7 +4,6 @@ enum DotState: Equatable {
     case inactive
     case activeEmpty
     case activeHalf
-    case activeCompleted
     case completed
 }
 
@@ -18,7 +17,6 @@ struct SessionDotView: View {
         case .inactive: return "circle"
         case .activeEmpty: return "capsule"
         case .activeHalf: return "capsule.lefthalf.filled"
-        case .activeCompleted: return "capsule.fill"
         case .completed: return "circle.fill"
         }
     }
@@ -68,20 +66,14 @@ struct SessionProgressView: View {
         let progress = timerManager.progress(forSegment: index)
         
         if progress >= ProgressThreshold.complete {
-            // Renders as capsule.fill if completed in the current active session
-            let target = Double(max(1, timerManager.settings.workDuration))
-            let milestoneEnd = Double(index + 1) * target
-            let wasNotCompletedBeforeSession = Double(timerManager.cycleAccumulatedWork) < milestoneEnd
-            let isWorkingPhase = timerManager.phase == .work || timerManager.phase == .flowExtension
-            
-            if wasNotCompletedBeforeSession && isWorkingPhase {
-                return .activeCompleted
-            } else {
-                return .completed
-            }
+            return .completed
         }
         
         if index == activeMilestoneIndex {
+            let isBreak = timerManager.phase == .shortBreak || timerManager.phase == .longBreak
+            if (timerManager.state == .idle || isBreak) && progress == 0 {
+                return .inactive
+            }
             if progress >= ProgressThreshold.half {
                 return .activeHalf
             } else {

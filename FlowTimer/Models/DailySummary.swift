@@ -10,6 +10,9 @@ struct DailySummary: Identifiable, Hashable {
     
     // Derived properties useful for aggregations
     var averageSessionLength: TimeInterval {
-        completedSessions > 0 ? totalFocusDuration / Double(completedSessions) : 0
+        let completed = sessions.filter { $0.coreWorkCompleted }
+        guard !completed.isEmpty else { return 0 }
+        let sum = completed.reduce(0) { $0 + $1.duration }
+        return sum / Double(completed.count)
     }
 }

@@ -90,14 +90,12 @@ struct FocusTaskRowView: View {
                             isEditing = false
                         }
                     )
-                    .padding(.trailing, !task.isCompleted ? 104 : 0)
                 } else {
                     Text(task.text)
                         .font(.system(size: 14))
                         .foregroundColor(task.isCompleted ? theme.secondaryForegroundColor.opacity(0.5) : theme.foregroundColor)
                         .strikethrough(task.isCompleted)
                         .lineLimit(1)
-                        .padding(.trailing, !task.isCompleted ? 104 : 0)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -108,63 +106,62 @@ struct FocusTaskRowView: View {
                     isFocused = true
                 }
             }
-            .overlay(alignment: .trailing) {
-                if !task.isCompleted {
-                    HStack(spacing: 8) {
-                        if !isFirstIncomplete {
-                            Button(action: {
-                                taskManager.moveUp(id: task.id)
-                            }) {
-                                Image(systemName: "arrow.up")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(theme.secondaryForegroundColor.opacity(0.8))
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        if !isLastIncomplete {
-                            Button(action: {
-                                taskManager.moveDown(id: task.id)
-                            }) {
-                                Image(systemName: "arrow.down")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(theme.secondaryForegroundColor.opacity(0.8))
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        TagSelectorMenu(selectedTagId: Binding(
-                            get: {
-                                guard let tagName = task.tagName else { return nil }
-                                return TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() })?.id
-                            },
-                            set: { newId in
-                                if let newId = newId, let tag = TagManager.shared.tags.first(where: { $0.id == newId }) {
-                                    taskManager.setTag(id: task.id, tagName: tag.name)
-                                } else {
-                                    taskManager.setTag(id: task.id, tagName: nil)
-                                }
-                            }
-                        ))
-                        
+            
+            if !task.isCompleted {
+                HStack(spacing: 8) {
+                    if !isFirstIncomplete {
                         Button(action: {
-                            timerManager.customSessionTitle = task.text
-                            if let tagName = task.tagName,
-                               let tag = TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() }) {
-                                SettingsManager.shared.settings.selectedTagId = tag.id
-                            }
+                            taskManager.moveUp(id: task.id)
                         }) {
-                            Image(systemName: "inset.filled.topthird.rectangle")
-                                .foregroundColor(theme.foregroundColor.opacity(0.85))
-                                .nativeToolbarIcon()
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 14))
+                                .foregroundColor(theme.secondaryForegroundColor.opacity(0.8))
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help("Set as Session Title")
                     }
-                    .opacity((isHovered || isEditing) ? 1.0 : 0.0)
+                    
+                    if !isLastIncomplete {
+                        Button(action: {
+                            taskManager.moveDown(id: task.id)
+                        }) {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 14))
+                                .foregroundColor(theme.secondaryForegroundColor.opacity(0.8))
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    TagSelectorMenu(selectedTagId: Binding(
+                        get: {
+                            guard let tagName = task.tagName else { return nil }
+                            return TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() })?.id
+                        },
+                        set: { newId in
+                            if let newId = newId, let tag = TagManager.shared.tags.first(where: { $0.id == newId }) {
+                                taskManager.setTag(id: task.id, tagName: tag.name)
+                            } else {
+                                taskManager.setTag(id: task.id, tagName: nil)
+                            }
+                        }
+                    ))
+                    
+                    Button(action: {
+                        timerManager.customSessionTitle = task.text
+                        if let tagName = task.tagName,
+                           let tag = TagManager.shared.tags.first(where: { $0.name.lowercased() == tagName.lowercased() }) {
+                            SettingsManager.shared.settings.selectedTagId = tag.id
+                        }
+                    }) {
+                        Image(systemName: "inset.filled.topthird.rectangle")
+                            .foregroundColor(theme.foregroundColor.opacity(0.85))
+                            .nativeToolbarIcon()
+                    }
+                    .buttonStyle(.plain)
+                    .help("Set as Session Title")
                 }
+                .opacity((isHovered || isEditing) ? 1.0 : 0.0)
             }
         }
         .padding(.horizontal, 16)

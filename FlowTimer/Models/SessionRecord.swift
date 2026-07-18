@@ -23,4 +23,16 @@ struct SessionRecord: Identifiable, Codable, Hashable {
     nonisolated var pauses: Int {
         pauseCount ?? 0
     }
+    
+    /// The single canonical definition of completed planned work.
+    ///
+    /// In the Logical Focus Session model, Flow Extension is a continuation of
+    /// a focus block, NOT a separate session. This property decouples the concept
+    /// of "Did the user hit their 25-minute goal?" from "How long did they focus?"
+    ///
+    /// - Returns: `true` ONLY if the planned Work phase completed naturally.
+    /// Cancelling a subsequent Flow Extension does NOT revoke this status.
+    nonisolated var isCoreWorkCompleted: Bool {
+        phase == .work && termination == .natural
+    }
 }

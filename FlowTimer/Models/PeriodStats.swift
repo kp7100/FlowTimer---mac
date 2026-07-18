@@ -11,5 +11,5 @@ struct PeriodStats {
     let topTags: [(String, TimeInterval)]
     let daysMeetingGoal: Int
     let totalDaysInPeriod: Int
-    let focusRecords: [SessionRecord] // Needed for exact intra-day charts in Day view
+    let focusSessions: [ContinuousSession] // Needed for exact intra-day charts in Day view
 }

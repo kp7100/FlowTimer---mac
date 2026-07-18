@@ -39,6 +39,7 @@ class RenameSessionPanelController: NSObject, NSWindowDelegate, NSTextFieldDeleg
         panel.titleVisibility = .hidden
         panel.isReleasedWhenClosed = false
         panel.delegate = self
+        panel.appearance = NSAppearance(named: .vibrantDark)
         
         panel.standardWindowButton(.closeButton)?.isHidden = true
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true

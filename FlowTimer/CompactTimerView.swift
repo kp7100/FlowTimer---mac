@@ -26,9 +26,10 @@ struct CompactTimerView: View {
                             alignment: .leading,
                             frameAlignment: .leading
                         )
-                        .padding(.leading, 22) // Shift text right and prevent background from bleeding under Close button
+                        .padding(.leading, isHoveringWindow ? 22 : 0) // Shift text right to accommodate close button on hover
                         .padding(.trailing, -45) // Allow title to use empty space above the play button without expanding the VStack, but leave breathing room on the right
                         .offset(y: -4) // Optically align baseline
+                        .animation(.easeInOut(duration: 0.2), value: isHoveringWindow)
                         
                         ZStack(alignment: .center) {
                             Text("00:00")
@@ -66,19 +67,26 @@ struct CompactTimerView: View {
             
             // Absolute top-left corner for window controls (margins)
             // Rendered last in ZStack so it receives clicks above the HStack's onTapGesture
-            WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, onClose: {
-                WindowManager.shared.hideMiniTimer()
-            })
-            .padding(.top, 8)
-            .padding(.leading, 8)
+            ZStack(alignment: .topLeading) {
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 50, height: 50)
+                    .contentShape(Rectangle())
+                
+                WindowControlsView(isHoveringWindow: isHoveringWindow, showMiniButton: false, disableAppearanceAnimation: true, onClose: {
+                    WindowManager.shared.hideMiniTimer()
+                })
+                .padding(.top, 8)
+                .padding(.leading, 8)
+            }
+            .onHover { hover in
+                isHoveringWindow = hover
+            }
         }
         .frame(width: 210, height: 105)
         .ignoresSafeArea()
         .flowModeTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark)
         .sessionRecoveryTransition(timerManager: timerManager, isDarkMode: colorScheme == .dark, isCompactMode: true)
-        .onHover { hover in
-            isHoveringWindow = hover
-        }
     }
 }
 

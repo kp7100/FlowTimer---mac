@@ -3,15 +3,6 @@ import AppKit
 import Foundation
 import Observation
 import Combine
-
-enum FlowWellnessState {
-    case coffee
-    case stretch
-    case water
-    case eyes
-    case walk
-}
-
 struct AdaptiveBreakPayload: Equatable {
     let totalWorkMinutes: Int
     let extraBreakMinutes: Int
@@ -57,6 +48,11 @@ final class TimerManager {
     
     // Gap-check tracking
     private var lastPausedAt: Date?
+    
+    /// The UUID of the preceding `SessionRecord` fragment.
+    /// Preserved ONLY during a `Work` -> `Flow Extension` transition to fuse them
+    /// into a single Logical Focus Session. Intentionally cleared for all other
+    /// transitions (Break, Reset, Stop) as they demarcate the end of the focus block.
     private var lastSessionFragmentID: UUID?
     private var accumulatedDurationAtLastSplit: TimeInterval = 0
     private let sessionSplitThresholdSeconds: TimeInterval = 300 // 5 minutes
@@ -189,21 +185,22 @@ final class TimerManager {
             return "Long Break"
         case .work, .flowExtension:
             if state == .paused {
-                let completedWorkToday = HistoryManager.shared.focusTimeToday()
-                let completedFlowToday = HistoryManager.shared.flowExtensionToday()
-                let completedToday = completedWorkToday + completedFlowToday
+                let calendar = Calendar.current
+                let todayInterval = calendar.dateInterval(of: .day, for: Date())!
+                let compInterval = calendar.comparisonInterval(of: .day, for: todayInterval)
                 
-                let currentElapsed: TimeInterval
-                if phase == .work {
-                    currentElapsed = TimeInterval(max(0, currentPhaseDuration - currentPhaseRemainingSeconds))
-                } else {
-                    currentElapsed = TimeInterval(max(0, currentPhaseDuration))
-                }
+                let stats = StatisticsStore.shared.getStats(
+                    for: .day,
+                    interval: todayInterval,
+                    comparisonInterval: compInterval,
+                    goalFocusTime: settingsManager.settings.goalFocusTime,
+                    activeRecord: activeSessionRecord
+                )
                 
-                let totalTodaySeconds = completedToday + currentElapsed
+                let totalTodaySeconds = stats.totalFocusTime
                 
-                if settings.goalsEnabled {
-                    let target = settings.goalFocusTime
+                if settingsManager.settings.goalsEnabled {
+                    let target = settingsManager.settings.goalFocusTime
                     let completed = totalTodaySeconds >= target
                     let completedText = TimeFormatter.formatForStats(seconds: totalTodaySeconds)
                     let goalText = TimeFormatter.formatForStats(seconds: target)
@@ -217,17 +214,6 @@ final class TimerManager {
             }
         }
     }
-    
-        private let flowWellnessIconThresholdSeconds: Int = 900
-    
-    var flowWellnessState: FlowWellnessState {
-        guard phase == .flowExtension else { return .coffee }
-        if currentPhaseDuration >= flowWellnessIconThresholdSeconds {
-            return .stretch
-        }
-        return .coffee
-    }
-    
     init(settingsManager: SettingsManager? = nil) {
         let manager = settingsManager ?? .shared
         self.settingsManager = manager
@@ -502,7 +488,9 @@ final class TimerManager {
         defer { isTransitioningPhase = false }
         
         lastPausedAt = nil
-        lastSessionFragmentID = nil
+        if phase != .work || isSkip {
+            lastSessionFragmentID = nil
+        }
         accumulatedDurationAtLastSplit = 0
         
         switch phase {
@@ -591,14 +579,17 @@ final class TimerManager {
             guard let self else { return }
             let engineSnapshot = await engine.snapshot()
             
+            var nextFragmentID: UUID? = nil
+            
             if let startDate = self.currentPhaseStartDate {
                 let fragmentDuration = engineSnapshot.accumulatedSeconds - self.accumulatedDurationAtLastSplit
                 let isFocusPhase = (self.phase == .work || self.phase == .flowExtension)
                 let finalDuration = isFocusPhase ? fragmentDuration : TimeInterval(self.currentPhaseDuration)
                 
                 if finalDuration > 0 {
+                    let newID = UUID()
                     let record = SessionRecord(
-                        id: UUID(),
+                        id: newID,
                         phase: self.phase,
                         startDate: startDate,
                         endDate: Date(),
@@ -609,12 +600,16 @@ final class TimerManager {
                         termination: .natural
                     )
                     HistoryManager.shared.addSession(record)
+                    
+                    if self.phase == .work {
+                        nextFragmentID = newID
+                    }
                 }
             }
             
             self.currentPhaseStartDate = nil
             self.lastPausedAt = nil
-            self.lastSessionFragmentID = nil
+            self.lastSessionFragmentID = nextFragmentID
             self.accumulatedDurationAtLastSplit = 0
             
             switch self.phase {

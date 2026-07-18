@@ -66,6 +66,7 @@ struct InlineEditableTitle: View {
                 isEditing: $isEditing,
                 onCommit: { newText in
                     customTitle = newText.isEmpty ? nil : newText
+                    isHovering = false
                 }
             )
             .frame(maxWidth: .infinity, alignment: frameAlignment)

@@ -95,7 +95,7 @@ struct StatisticsChartCard: View {
         .modifier(CardModifier())
     }
     
-    static func makeData(period: StatisticsPeriod, date: Date, focusRecords: [SessionRecord]) -> [ChartDataPoint] {
+    static func makeData(period: StatisticsPeriod, date: Date, focusSessions: [ContinuousSession]) -> [ChartDataPoint] {
         let calendar = Calendar.current
         
         switch period {
@@ -104,28 +104,30 @@ struct StatisticsChartCard: View {
             let dayStart = calendar.startOfDay(for: date)
             let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
             
-            for record in focusRecords {
-                let totalElapsed = record.endDate.timeIntervalSince(record.startDate)
-                guard totalElapsed > 0 else { continue }
-                
-                let activeRatio = min(1.0, record.duration / totalElapsed)
-                
-                let start = max(record.startDate, dayStart)
-                let end = min(record.endDate, dayEnd)
-                guard start < end else { continue }
-                
-                let startHour = calendar.component(.hour, from: start)
-                let endHour = calendar.component(.hour, from: end)
-                
-                for h in startHour...endHour {
-                    let hourStart = calendar.date(byAdding: .hour, value: h, to: dayStart)!
-                    let hourEnd = calendar.date(byAdding: .hour, value: 1, to: hourStart)!
+            for session in focusSessions {
+                for record in session.constituentRecords {
+                    let totalElapsed = record.endDate.timeIntervalSince(record.startDate)
+                    guard totalElapsed > 0 else { continue }
                     
-                    let overlapStart = max(start, hourStart)
-                    let overlapEnd = min(end, hourEnd)
-                    if overlapStart < overlapEnd {
-                        let overlapElapsed = overlapEnd.timeIntervalSince(overlapStart)
-                        binSeconds[h] += (overlapElapsed * activeRatio)
+                    let activeRatio = min(1.0, record.duration / totalElapsed)
+                    
+                    let start = max(record.startDate, dayStart)
+                    let end = min(record.endDate, dayEnd)
+                    guard start < end else { continue }
+                    
+                    let startHour = calendar.component(.hour, from: start)
+                    let endHour = calendar.component(.hour, from: end)
+                    
+                    for h in startHour...endHour {
+                        let hourStart = calendar.date(byAdding: .hour, value: h, to: dayStart)!
+                        let hourEnd = calendar.date(byAdding: .hour, value: 1, to: hourStart)!
+                        
+                        let overlapStart = max(start, hourStart)
+                        let overlapEnd = min(end, hourEnd)
+                        if overlapStart < overlapEnd {
+                            let overlapElapsed = overlapEnd.timeIntervalSince(overlapStart)
+                            binSeconds[h] += (overlapElapsed * activeRatio)
+                        }
                     }
                 }
             }
@@ -145,10 +147,10 @@ struct StatisticsChartCard: View {
             let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)!.start
             var dailySeconds = Array(repeating: 0.0, count: 7)
             
-            for record in focusRecords {
-                let dayIndex = calendar.component(.weekday, from: record.endDate) - 1
+            for session in focusSessions {
+                let dayIndex = calendar.component(.weekday, from: session.startDate) - 1
                 if dayIndex >= 0 && dayIndex < 7 {
-                    dailySeconds[dayIndex] += record.duration
+                    dailySeconds[dayIndex] += session.duration
                 }
             }
             
@@ -168,10 +170,10 @@ struct StatisticsChartCard: View {
             let numDays = range.count
             var dailySeconds = Array(repeating: 0.0, count: numDays)
             
-            for record in focusRecords {
-                let day = calendar.component(.day, from: record.endDate)
+            for session in focusSessions {
+                let day = calendar.component(.day, from: session.startDate)
                 if day >= 1 && day <= numDays {
-                    dailySeconds[day - 1] += record.duration
+                    dailySeconds[day - 1] += session.duration
                 }
             }
             
@@ -190,10 +192,10 @@ struct StatisticsChartCard: View {
             let yearStart = calendar.dateInterval(of: .year, for: date)!.start
             var monthlySeconds = Array(repeating: 0.0, count: 12)
             
-            for record in focusRecords {
-                let m = calendar.component(.month, from: record.endDate) - 1
+            for session in focusSessions {
+                let m = calendar.component(.month, from: session.startDate) - 1
                 if m >= 0 && m < 12 {
-                    monthlySeconds[m] += record.duration
+                    monthlySeconds[m] += session.duration
                 }
             }
             

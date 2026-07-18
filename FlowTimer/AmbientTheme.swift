@@ -37,7 +37,7 @@ struct AmbientTheme: Equatable {
         switch phase {
         case .work:
             return AmbientTheme(
-                backgroundColor: Color(NSColor.windowBackgroundColor),
+                backgroundColor: isDarkMode ? Color(NSColor.windowBackgroundColor) : Color(white: 0.96),
                 foregroundColor: .primary,
                 secondaryForegroundColor: .secondary,
                 primaryColor: .accentColor,
@@ -64,7 +64,7 @@ struct AmbientTheme: Equatable {
             let pressedBlue = flowColor.opacity(0.7)
             
             return AmbientTheme(
-                backgroundColor: Color(NSColor.windowBackgroundColor),
+                backgroundColor: isDarkMode ? Color(NSColor.windowBackgroundColor) : Color(white: 0.96),
                 foregroundColor: .primary,
                 secondaryForegroundColor: .secondary,
                 primaryColor: flowColor,
@@ -84,10 +84,10 @@ struct AmbientTheme: Equatable {
             )
             
         case .shortBreak:
-            let bgTeal = Color(red: 0.16, green: 0.32, blue: 0.28) // Rich eucalyptus (lighter)
-            let buttonTeal = Color(red: 0.12, green: 0.26, blue: 0.23) // Darker teal button
-            let hoverTeal = Color(red: 0.10, green: 0.23, blue: 0.20)
-            let pressedTeal = Color(red: 0.08, green: 0.20, blue: 0.17)
+            let bgTeal = Color(red: 0.21, green: 0.43, blue: 0.37) // Brightened eucalyptus
+            let buttonTeal = Color.white.opacity(0.12) // Translucent white for glassmorphic look
+            let hoverTeal = Color.white.opacity(0.20)
+            let pressedTeal = Color.white.opacity(0.30)
             let activeTeal = Color(red: 0.35, green: 0.80, blue: 0.70) // Brighter active teal
             
             return AmbientTheme(
@@ -111,10 +111,10 @@ struct AmbientTheme: Equatable {
             )
             
         case .longBreak:
-            let bgLongTeal = Color(red: 0.14, green: 0.29, blue: 0.25) // Slightly darker eucalyptus (lighter)
-            let buttonLongTeal = Color(red: 0.10, green: 0.23, blue: 0.20)
-            let hoverLongTeal = Color(red: 0.08, green: 0.20, blue: 0.17)
-            let pressedLongTeal = Color(red: 0.06, green: 0.17, blue: 0.14)
+            let bgLongTeal = Color(red: 0.18, green: 0.38, blue: 0.33) // Brightened eucalyptus
+            let buttonLongTeal = Color.white.opacity(0.12) // Translucent white for glassmorphic look
+            let hoverLongTeal = Color.white.opacity(0.20)
+            let pressedLongTeal = Color.white.opacity(0.30)
             let activeLongTeal = Color(red: 0.33, green: 0.75, blue: 0.65)
             
             return AmbientTheme(
@@ -150,19 +150,6 @@ extension EnvironmentValues {
         set { self[AmbientThemeKey.self] = newValue }
     }
 }
-
-struct WellnessIconProvider {
-    static func icon(for state: FlowWellnessState) -> String {
-        switch state {
-        case .coffee: return "cup.and.saucer.fill"
-        case .stretch: return "figure.cooldown"
-        case .water: return "drop.fill"
-        case .eyes: return "eye.fill"
-        case .walk: return "figure.walk"
-        }
-    }
-}
-
 struct PrimaryAmbientButtonStyle: ButtonStyle {
     @Environment(\.ambientTheme) var theme
     @State private var isHovered = false

@@ -22,11 +22,11 @@ struct PlayPauseButton: View {
             }
         }) {
             if isMiniTimer && timerManager.phase == .flowExtension {
-                Image(systemName: WellnessIconProvider.icon(for: timerManager.flowWellnessState))
+                Image(systemName: "stop")
                     .font(iconSize)
-                    .foregroundColor(theme.buttonForeground)
+                    .foregroundColor(theme.accentColor)
                     .frame(width: size, height: size)
-                    .background(theme.takeBreakButtonBackground)
+                    .background(theme.accentColor.opacity(0.15))
                     .clipShape(Circle())
             } else {
                 Image(systemName: timerManager.isRunning ? "pause" : "play")

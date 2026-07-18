@@ -1,5 +1,14 @@
 import Foundation
 
+/// Merges fragmented `SessionRecord`s into cohesive `ContinuousSession`s (Logical Focus Sessions).
+///
+/// **Architectural Invariant:**
+/// This builder strictly assumes that `SessionRecord`s are supplied in chronological creation order.
+/// This is guaranteed by the current `TimerManager`/`HistoryManager` pipeline.
+///
+/// *Warning:* If FlowTimer ever introduces cloud sync, import/export, or unordered history
+/// ingestion, this builder should be revisited and potentially replaced with an order-independent
+/// dictionary/graph-based implementation to prevent continuation chains from breaking.
 actor ContinuousSessionBuilder {
     private var processedCount = 0
     private var continuousSessions: [ContinuousSession] = []
@@ -39,12 +48,7 @@ actor ContinuousSessionBuilder {
                 var updatedRecords = lastSession.constituentRecords
                 updatedRecords.append(record)
                 
-                let isCompleted: Bool
-                if let term = updatedRecords.last?.termination {
-                    isCompleted = (term == .natural)
-                } else {
-                    isCompleted = true
-                }
+                let coreWorkCompleted = updatedRecords.contains { $0.isCoreWorkCompleted }
                 
                 continuousSessions[lastIndex] = ContinuousSession(
                     id: lastSession.id,
@@ -53,16 +57,11 @@ actor ContinuousSessionBuilder {
                     duration: updatedDuration,
                     pauseCount: updatedPauses,
                     tag: lastSession.tag,
-                    isCompleted: isCompleted,
+                    coreWorkCompleted: coreWorkCompleted,
                     constituentRecords: updatedRecords
                 )
             } else {
-                let isCompleted: Bool
-                if let term = record.termination {
-                    isCompleted = (term == .natural)
-                } else {
-                    isCompleted = true
-                }
+                let coreWorkCompleted = record.isCoreWorkCompleted
                 
                 let newSession = ContinuousSession(
                     id: UUID(), // Or use record.id as the canonical ID for this session chain
@@ -71,7 +70,7 @@ actor ContinuousSessionBuilder {
                     duration: record.duration,
                     pauseCount: record.pauses,
                     tag: record.tag,
-                    isCompleted: isCompleted,
+                    coreWorkCompleted: coreWorkCompleted,
                     constituentRecords: [record]
                 )
                 continuousSessions.append(newSession)

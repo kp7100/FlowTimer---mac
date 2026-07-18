@@ -4,6 +4,7 @@ struct WindowControlsView: View {
     let isHoveringWindow: Bool
     var showCloseButton: Bool = true
     var showMiniButton: Bool = true
+    var disableAppearanceAnimation: Bool = false
     var onClose: (() -> Void)? = nil
     
     @Environment(\.dismiss) private var dismiss
@@ -44,12 +45,7 @@ struct WindowControlsView: View {
             // Mini Timer Button
             if showMiniButton {
                 Button(action: {
-                    if let onClose = onClose {
-                        onClose()
-                    } else {
-                        dismiss()
-                    }
-                    WindowManager.shared.showMiniTimer()
+                    WindowManager.shared.toggleMiniTimer()
                 }) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
                         .foregroundColor(theme.foregroundColor.opacity(0.85))
@@ -59,6 +55,6 @@ struct WindowControlsView: View {
             }
         }
         .opacity(isHoveringWindow ? 1 : 0)
-        .animation(.easeInOut(duration: 0.18), value: isHoveringWindow)
+        .animation(disableAppearanceAnimation ? nil : .easeInOut(duration: 0.18), value: isHoveringWindow)
     }
 }

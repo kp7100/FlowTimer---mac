@@ -119,7 +119,7 @@ final class StatisticsStore {
                 let summary = DailySummary(
                     date: date,
                     totalFocusDuration: totalDuration,
-                    completedSessions: sessionsForDay.filter { $0.isCompleted }.count,
+                    completedSessions: sessionsForDay.filter { $0.coreWorkCompleted }.count,
                     pauseCount: pauses,
                     sessions: sessionsForDay
                 )
@@ -207,7 +207,7 @@ final class StatisticsStore {
         let data = StatisticsChartCard.makeData(
             period: period,
             date: date,
-            focusRecords: stats.focusRecords
+            focusSessions: stats.focusSessions
         )
         cachedChartData = CachedChartData(key: key, data: data)
         return data
@@ -238,11 +238,11 @@ final class StatisticsStore {
 
         let numDays = stats.totalDaysInPeriod
         var dailyDurations = Array(repeating: 0.0, count: numDays)
-        for record in stats.focusRecords {
-            if let daysSinceStart = calendar.dateComponents([.day], from: interval.start, to: calendar.startOfDay(for: record.endDate)).day,
+        for session in stats.focusSessions {
+            if let daysSinceStart = calendar.dateComponents([.day], from: interval.start, to: calendar.startOfDay(for: session.startDate)).day,
                daysSinceStart >= 0,
                daysSinceStart < numDays {
-                dailyDurations[daysSinceStart] += record.duration
+                dailyDurations[daysSinceStart] += session.duration
             }
         }
 
@@ -253,7 +253,7 @@ final class StatisticsStore {
     private func relevantActiveRecord(_ record: SessionRecord?, for interval: DateInterval) -> SessionRecord? {
         guard let record,
               (record.phase == .work || record.phase == .flowExtension),
-              interval.contains(record.endDate) else {
+              interval.contains(record.startDate) else {
             return nil
         }
         return record
@@ -266,10 +266,11 @@ final class StatisticsStore {
         key: PeriodStatsCacheKey
     ) -> CachedPeriodStats {
         var currentDuration: TimeInterval = 0
+        var currentCompletedDuration: TimeInterval = 0
         var currentCompleted = 0
         var currentPauses = 0
         var longestSession: TimeInterval = 0
-        var focusRecords: [SessionRecord] = []
+        var focusSessions: [ContinuousSession] = []
         var tagDict: [String: TimeInterval] = [:]
         
         // Sum current and comparison periods in one pass over the daily cache.
@@ -284,9 +285,16 @@ final class StatisticsStore {
                 
                 for session in summary.sessions {
                     longestSession = max(longestSession, session.duration)
-                    focusRecords.append(contentsOf: session.constituentRecords)
-                    if let tag = session.tag {
-                        tagDict[tag, default: 0] += session.duration
+                    focusSessions.append(session)
+                    
+                    if session.coreWorkCompleted {
+                        currentCompletedDuration += session.duration
+                    }
+                    
+                    for record in session.constituentRecords {
+                        if let tag = record.tag {
+                            tagDict[tag, default: 0] += record.duration
+                        }
                     }
                 }
                 
@@ -299,9 +307,9 @@ final class StatisticsStore {
             }
         }
         
-        let avgLength = currentCompleted > 0 ? currentDuration / Double(currentCompleted) : 0
+        let avgLength = currentCompleted > 0 ? currentCompletedDuration / Double(currentCompleted) : 0
         let avgPauses = currentCompleted > 0 ? Double(currentPauses) / Double(currentCompleted) : 0
-        let comparisonDiffMinutes = Int((currentDuration - previousDuration) / 60.0)
+        let comparisonDiffMinutes = Int(round((currentDuration - previousDuration) / 60.0))
         let topTags = tagDict.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
         
         let totalDaysInPeriod: Int
@@ -333,7 +341,7 @@ final class StatisticsStore {
             topTags: topTags,
             daysMeetingGoal: daysMeetingGoalCount,
             totalDaysInPeriod: totalDaysInPeriod,
-            focusRecords: focusRecords.sorted(by: { $0.startDate < $1.startDate }) // Keep sorted for charts
+            focusSessions: focusSessions.sorted(by: { $0.startDate < $1.startDate }) // Keep sorted for charts
         )
 
         return CachedPeriodStats(
@@ -351,28 +359,38 @@ final class StatisticsStore {
             tagDurations[tag, default: 0] += active.duration
         }
 
-        let focusRecords = inserting(active, into: stats.focusRecords)
+        let activeSession = ContinuousSession(
+            id: active.id,
+            startDate: active.startDate,
+            endDate: active.endDate,
+            duration: active.duration,
+            pauseCount: active.pauses,
+            tag: active.tag,
+            coreWorkCompleted: active.isCoreWorkCompleted,
+            constituentRecords: [active]
+        )
+        let focusSessions = inserting(activeSession, into: stats.focusSessions)
         let topTags = tagDurations.map { ($0.key, $0.value) }.sorted { $0.1 > $1.1 }
 
         return PeriodStats(
             totalFocusTime: totalFocusTime,
-            comparisonMinutes: Int((totalFocusTime - comparisonDuration) / 60.0),
+            comparisonMinutes: Int(round((totalFocusTime - comparisonDuration) / 60.0)),
             longestSession: max(stats.longestSession, active.duration),
-            averageSessionLength: stats.completedSessions > 0 ? totalFocusTime / Double(stats.completedSessions) : 0,
+            averageSessionLength: stats.averageSessionLength, // active session is not completed, doesn't affect average
             completedSessions: stats.completedSessions,
             pauseCount: pauseCount,
             averagePausesPerSession: stats.completedSessions > 0 ? Double(pauseCount) / Double(stats.completedSessions) : 0,
             topTags: topTags,
             daysMeetingGoal: stats.daysMeetingGoal,
             totalDaysInPeriod: stats.totalDaysInPeriod,
-            focusRecords: focusRecords
+            focusSessions: focusSessions
         )
     }
 
-    private func inserting(_ record: SessionRecord, into records: [SessionRecord]) -> [SessionRecord] {
-        var result = records
-        let insertionIndex = records.firstIndex { $0.startDate > record.startDate } ?? records.endIndex
-        result.insert(record, at: insertionIndex)
+    private func inserting(_ session: ContinuousSession, into sessions: [ContinuousSession]) -> [ContinuousSession] {
+        var result = sessions
+        let insertionIndex = sessions.firstIndex { $0.startDate > session.startDate } ?? sessions.endIndex
+        result.insert(session, at: insertionIndex)
         return result
     }
 }

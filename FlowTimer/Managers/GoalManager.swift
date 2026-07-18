@@ -19,11 +19,24 @@ final class GoalManager {
     private var historyManager = HistoryManager.shared
     private var settingsManager = SettingsManager.shared
     
-    var progress: DailyGoalProgress {
+    func progress(activeRecord: SessionRecord?) -> DailyGoalProgress {
         let settings = settingsManager.settings
         
         let target = settings.goalFocusTime
-        let current = historyManager.focusTimeToday() + historyManager.flowExtensionToday()
+        
+        let calendar = Calendar.current
+        let todayInterval = calendar.dateInterval(of: .day, for: Date())!
+        let compInterval = calendar.comparisonInterval(of: .day, for: todayInterval)
+        
+        let stats = StatisticsStore.shared.getStats(
+            for: .day,
+            interval: todayInterval,
+            comparisonInterval: compInterval,
+            goalFocusTime: target,
+            activeRecord: activeRecord
+        )
+        
+        let current = stats.totalFocusTime
         
         let fraction = target > 0 ? current / target : 0
         let filled = min(6, Int(fraction * 6.0))

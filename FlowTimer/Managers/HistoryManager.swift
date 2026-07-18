@@ -80,71 +80,10 @@ final class HistoryManager {
         return filteredByPhase.filter { interval.contains($0.endDate) }
     }
     
-    // Focus Time
-    func focusTimeToday() -> TimeInterval {
-        sessions(in: todayInterval, phase: .work).reduce(0) { $0 + $1.duration }
-    }
-    
-    func focusTimeYesterday() -> TimeInterval {
-        sessions(in: yesterdayInterval, phase: .work).reduce(0) { $0 + $1.duration }
-    }
-    
-    func focusTimeThisWeek() -> TimeInterval {
-        sessions(in: weekInterval, phase: .work).reduce(0) { $0 + $1.duration }
-    }
-    
-    func focusTimeThisMonth() -> TimeInterval {
-        sessions(in: monthInterval, phase: .work).reduce(0) { $0 + $1.duration }
-    }
-    
-    func totalFocusTime() -> TimeInterval {
-        sessions(phase: .work).reduce(0) { $0 + $1.duration }
-    }
-    
-    // Flow Extension
-    func flowExtensionToday() -> TimeInterval {
-        sessions(in: todayInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
-    }
-    
-    func flowExtensionYesterday() -> TimeInterval {
-        sessions(in: yesterdayInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
-    }
-    
-    func flowExtensionThisWeek() -> TimeInterval {
-        sessions(in: weekInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
-    }
-    
-    func flowExtensionThisMonth() -> TimeInterval {
-        sessions(in: monthInterval, phase: .flowExtension).reduce(0) { $0 + $1.duration }
-    }
-    
-    func totalFlowExtension() -> TimeInterval {
-        sessions(phase: .flowExtension).reduce(0) { $0 + $1.duration }
-    }
-    
-    func longestFlow() -> TimeInterval {
-        sessions(phase: .flowExtension).map { $0.duration }.max() ?? 0
-    }
-    
+
     // Session Counts
-    func completedWorkSessionsToday() -> Int {
-        sessions(in: todayInterval, phase: .work).filter { $0.continuationOf == nil }.count
-    }
-    
-    func sessionsYesterday() -> Int {
-        sessions(in: yesterdayInterval, phase: .work).filter { $0.continuationOf == nil }.count
-    }
-    
-    func completedWorkSessionsThisWeek() -> Int {
-        sessions(in: weekInterval, phase: .work).filter { $0.continuationOf == nil }.count
-    }
-    
-    func completedWorkSessionsThisMonth() -> Int {
-        sessions(in: monthInterval, phase: .work).filter { $0.continuationOf == nil }.count
-    }
-    
     func totalCompletedWorkSessions() -> Int {
-        sessions(phase: .work).filter { $0.continuationOf == nil }.count
+        sessions.filter { $0.isCoreWorkCompleted }.count
     }
     
     // Tag Queries
@@ -153,11 +92,11 @@ final class HistoryManager {
     }
     
     func focusTime(for tag: Tag) -> TimeInterval {
-        sessions(for: tag).filter { $0.phase == .work }.reduce(0) { $0 + $1.duration }
+        sessions(for: tag).filter { $0.phase == .work || $0.phase == .flowExtension }.reduce(0) { $0 + $1.duration }
     }
     
     func completedSessions(for tag: Tag) -> Int {
-        sessions(for: tag).filter { $0.phase == .work && $0.continuationOf == nil }.count
+        sessions(for: tag).filter { $0.isCoreWorkCompleted }.count
     }
     
     func topTags(limit: Int = 3) -> [(String, TimeInterval)] {

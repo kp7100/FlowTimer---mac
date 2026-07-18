@@ -22,7 +22,7 @@ struct MenuBarPanelView: View {
                     })
                 
                 if SettingsManager.shared.settings.goalsEnabled {
-                    let progress = GoalManager.shared.progress
+                    let progress = GoalManager.shared.progress(activeRecord: timerManager.activeSessionRecord)
                     Text(progress.displayText)
                         .font(.system(size: 15, weight: .regular))
                         .foregroundColor(currentTheme.foregroundColor.opacity(0.9))
@@ -30,44 +30,47 @@ struct MenuBarPanelView: View {
                 Spacer()
                 
                 HStack(spacing: 2) {
-                    Button {
-                        dismiss()
-                        Task { @MainActor in
-                            await Task.yield()
-                            WindowManager.shared.showStatisticsWindow()
-                        }
-                    } label: {
-                        Image(systemName: "chart.bar")
-                            .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
-                            .nativeToolbarIcon()
-                    }
-                    .buttonStyle(.plain)
-                    
                     Group {
-                        if timerManager.canResetCycle {
                         Button {
-                            timerManager.resetCycle()
+                            dismiss()
+                            Task { @MainActor in
+                                await Task.yield()
+                                WindowManager.shared.showStatisticsWindow()
+                            }
                         } label: {
-                            Image(systemName: "arrow.counterclockwise")
+                            Image(systemName: "chart.bar")
                                 .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
                                 .nativeToolbarIcon()
                         }
                         .buttonStyle(.plain)
-                        .transition(.symbolEffect(.drawOff))
-                    }
-                    }
-                    .animation(.default, value: timerManager.canResetCycle)
-                    
-                    if timerManager.phase == .work || timerManager.phase == .flowExtension {
-                        TagSelectorMenu(selectedTagId: Binding(
-                            get: { SettingsManager.shared.settings.selectedTagId },
-                            set: { newValue in
-                                withAnimation {
-                                    SettingsManager.shared.settings.selectedTagId = newValue
-                                }
+                        
+                        Group {
+                            if timerManager.canResetCycle {
+                            Button {
+                                timerManager.resetCycle()
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
+                                    .nativeToolbarIcon()
                             }
-                        ))
+                            .buttonStyle(.plain)
+                            .transition(.symbolEffect(.drawOff))
+                        }
+                        }
+                        .animation(.default, value: timerManager.canResetCycle)
+                        
+                        if timerManager.phase == .work || timerManager.phase == .flowExtension {
+                            TagSelectorMenu(selectedTagId: Binding(
+                                get: { SettingsManager.shared.settings.selectedTagId },
+                                set: { newValue in
+                                    withAnimation {
+                                        SettingsManager.shared.settings.selectedTagId = newValue
+                                    }
+                                }
+                            ))
+                        }
                     }
+                    .opacity(isHoveringToolbar ? 1.0 : 0.0)
                     
                     Menu {
                         SettingsMenuView(dismiss: dismiss, showingCustomGoalSheet: $showingCustomGoalSheet)
@@ -83,7 +86,6 @@ struct MenuBarPanelView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .opacity(isHoveringToolbar ? 1.0 : 0.0)
             }
             .padding(.leading, 12)
             .padding(.trailing, 12)
@@ -122,38 +124,42 @@ struct MenuBarPanelView: View {
                         timerManager.takeBreak()
                     }
                 }) {
-                    Text("Take Break")
+                    Text("Take a Break")
                         .font(.subheadline)
                 }
                 .buttonStyle(PrimaryAmbientButtonStyle())
                 .pointingHandCursor()
             } else {
                 HStack(spacing: 12) {
-                    Color.clear.frame(width: 32, height: 32) // Balance placeholder
+                    if timerManager.phase == .shortBreak || timerManager.phase == .longBreak {
+                        Color.clear.frame(width: 32, height: 32) // Balance placeholder
+                    }
                     
                     PlayPauseButton(timerManager: timerManager, size: 60, iconSize: .system(size: 27, weight: .light))
                     
-                    Button(action: {
-                        withAnimation {
-                            timerManager.skipCurrentPhase()
+                    if timerManager.phase == .shortBreak || timerManager.phase == .longBreak {
+                        Button(action: {
+                            withAnimation {
+                                timerManager.skipCurrentPhase()
+                            }
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .font(.title2)
+                                .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
+                                .frame(width: 32, height: 32)
+                                .contentShape(Circle())
+                                .background(
+                                    Circle()
+                                        .fill(currentTheme.foregroundColor.opacity(isHoveringSkip ? 0.08 : 0.0))
+                                )
                         }
-                    }) {
-                        Image(systemName: "chevron.right")
-                            .font(.title2)
-                            .foregroundColor(currentTheme.foregroundColor.opacity(0.85))
-                            .frame(width: 32, height: 32)
-                            .contentShape(Circle())
-                            .background(
-                                Circle()
-                                    .fill(currentTheme.foregroundColor.opacity(isHoveringSkip ? 0.08 : 0.0))
-                            )
+                        .buttonStyle(.plain)
+                        .pointingHandCursor()
+                        .onHover { hover in
+                            isHoveringSkip = hover
+                        }
+                        .animation(.easeInOut(duration: 0.1), value: isHoveringSkip)
                     }
-                    .buttonStyle(.plain)
-                    .pointingHandCursor()
-                    .onHover { hover in
-                        isHoveringSkip = hover
-                    }
-                    .animation(.easeInOut(duration: 0.1), value: isHoveringSkip)
                 }
             }
             
@@ -289,13 +295,6 @@ struct SettingsMenuView: View {
                 let currentFlow = (settings.flowExtensionLimit ?? (15 * 60)) / 60
                 let isFlowCustom = settings.flowExtensionLimit != nil && !flowPresets.contains(currentFlow)
                 
-                Toggle("No Limit", isOn: Binding(
-                    get: { settings.flowExtensionLimit == nil },
-                    set: { if $0 { SettingsManager.shared.settings.flowExtensionLimit = nil } }
-                ))
-                
-                Divider()
-                
                 ForEach(flowPresets, id: \.self) { min in
                     Toggle("\(min) min", isOn: Binding(
                         get: { settings.flowExtensionLimit == min * 60 },
@@ -304,12 +303,16 @@ struct SettingsMenuView: View {
                 }
                 
                 if isFlowCustom {
-                    Divider()
                     Toggle("\(currentFlow) min", isOn: Binding(
                         get: { settings.flowExtensionLimit == currentFlow * 60 },
                         set: { if $0 { SettingsManager.shared.settings.flowExtensionLimit = currentFlow * 60 } }
                     ))
                 }
+                
+                Toggle("Unlimited", isOn: Binding(
+                    get: { settings.flowExtensionLimit == nil },
+                    set: { if $0 { SettingsManager.shared.settings.flowExtensionLimit = nil } }
+                ))
                 
                 Divider()
                 
@@ -424,6 +427,7 @@ struct SettingsMenuView: View {
             Button("Quit FlowTimer") {
                 NSApplication.shared.terminate(nil)
             }
+            .keyboardShortcut("q", modifiers: .command)
         }
     }
 }
